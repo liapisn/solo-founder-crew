@@ -18,7 +18,12 @@ def load_dotenv(path: Path | str = ".env") -> bool:
     """Load KEY=VALUE pairs from *path* into os.environ.
 
     Returns True if the file was read (whether or not it had any keys),
-    False if it didn't exist. Existing env vars are not overwritten.
+    False if it didn't exist.
+
+    Existing **non-empty** env vars are not overwritten. An existing-but-
+    empty value is treated as unset and gets replaced — same semantics as
+    python-dotenv, and the source of a real bug otherwise: shells that
+    pre-declare `ANTHROPIC_API_KEY=` would silently break --real-llm.
     """
     p = Path(path)
     if not p.is_file():
@@ -30,6 +35,10 @@ def load_dotenv(path: Path | str = ".env") -> bool:
         key, _, value = line.partition("=")
         key = key.strip()
         value = value.strip().strip('"').strip("'")
-        if key and key not in os.environ:
-            os.environ[key] = value
+        if not key:
+            continue
+        # Treat existing-but-empty as unset.
+        if os.environ.get(key):
+            continue
+        os.environ[key] = value
     return True
