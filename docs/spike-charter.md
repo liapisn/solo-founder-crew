@@ -42,16 +42,39 @@ Score each candidate 1–5 on each criterion. Weighted total decides.
 
 Max raw score = 5 × (3+3+2+2+2+2+1) = 75.
 
+## LLM stance
+
+**The rubric scores framework ergonomics, not LLM output quality.** None
+of the seven criteria depend on what the model returns. Accordingly:
+
+- **Default scoring runs use a stub LLM** (`spikes/shared/MockLLM`), a
+  pre-loaded response queue returning two canned drafts in order. This
+  makes runs deterministic, free, and reproducible — properties the
+  Ch.5 evaluation chapter benefits from.
+- **One optional real-LLM smoke test per candidate** lives behind a
+  `--real-llm` flag in each spike's runner. It exists only to verify
+  that the framework's runtime LLM integration is real (closes the
+  reviewer pushback "you never ran an actual model through it"). Uses
+  `claude-haiku-4-5`, one call per run, ~$0.02 per candidate.
+  Requires `ANTHROPIC_API_KEY` to be set; otherwise the spike runs the
+  mock path.
+
+The smoke test is **not** scored. It is a methodological reassurance.
+
 ## Out of scope for the spike
 
 - Production-grade error handling
-- Real LLM calls beyond a single cheap model (use one model per spike to keep cost flat)
 - Multi-role crews — one role + founder is enough to score
 - The actual Role Library catalogue, Crew Generator algorithm, full HITL Contract DSL
+- Output-quality comparison between candidates (would require real-LLM
+  runs across all three with statistical care — out of scope for a
+  framework-selection ADR)
 
 ## Exit criteria
 
-- Three working implementations in `spikes/{crewai,langgraph,custom}/`
-- Each runs end-to-end on the same Venture Brief fixture
+- Three working implementations in `spikes/{custom,crewai,langgraph}/`
+- Each runs end-to-end against the shared mock with deterministic output
+- Each runs the optional `--real-llm` smoke test successfully when an
+  API key is present
 - Scorecard filled in at `docs/spike-scorecard.md`
 - ADR 0001 written and merged

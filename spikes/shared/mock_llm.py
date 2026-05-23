@@ -1,28 +1,29 @@
-"""Deterministic Mock LLM for the Part 7 framework spike.
+"""Deterministic stub LLM for the Part 7 framework spike.
 
-Returns canned draft responses keyed on the *intent* in the user message:
+Honest framing
+--------------
+The Part 7 rubric scores **framework ergonomics**, not LLM output quality.
+HITL ergonomics, role parameterisation, observability, dev experience —
+none of these depend on what the model returns. The LLM is wallpaper.
 
-- "draft"   → DRAFT_V1 (formal, restrained — what the Marketing role would
-              produce on a first pass without founder feedback)
-- "revise"  → DRAFT_V2 (warmer, adds a Greek tagline, ≤120 words — what the
-              role would produce after the founder's scripted feedback in
-              scenarios/fixtures/founder_responses.json)
-- anything else → a generic acknowledgement string
+So this stub doesn't try to be smart. It returns canned responses in
+the order the caller supplied them. The caller (each spike adapter)
+explicitly pre-loads `[DRAFT_V1, DRAFT_V2]` and we trust each candidate
+framework to make exactly two role calls. If a framework makes an
+unexpected extra call, the queue raises — and that's a useful signal
+about framework chattiness, not a bug.
 
-The mock counts calls and exposes them for the run trace so the
-Observability rubric criterion can be scored on what each framework
-makes available, not on how chatty the LLM is.
+The canned drafts (DRAFT_V1 formal, DRAFT_V2 warmer + Greek tagline)
+exist so the spike produces a worked example we can quote in Ch.3, not
+because the routing matters.
 
-Why a mock and not real LLM calls:
-The Part 7 rubric scores *framework ergonomics*, not LLM output quality.
-Three implementations using the same canned outputs make differences in
-HITL wiring, role expressiveness, observability, and dev experience
-visible without API spend or non-determinism. See docs/spike-charter.md.
+The optional real-LLM path lives behind a separate `RealLLM` client
+that satisfies the same Protocol (added when the first spike needs it).
 """
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Protocol
 
 
 DRAFT_V1 = """\
@@ -54,47 +55,55 @@ DRAFT_V2 = """\
 Στο Passly, η επόμενη επίσκεψη του πελάτη ξεκινά από το πορτοφόλι του.
 """
 
-GENERIC_ACK = "Acknowledged."
+# Default response queue every spike pre-loads.
+DEFAULT_RESPONSES: list[str] = [DRAFT_V1, DRAFT_V2]
 
 
 @dataclass
-class MockLLMResponse:
-    """Structured response, mirrors the shape downstream adapters need."""
-
+class LLMResponse:
     text: str
     call_index: int
-    matched_intent: str  # "draft" | "revise" | "other"
+
+
+class LLMClient(Protocol):
+    """Minimal LLM surface every spike adapter targets.
+
+    Both MockLLM and (later) RealLLM satisfy this. Adapters in each
+    candidate framework wrap this Protocol to fit their framework's
+    expected LLM interface (CrewAI BaseLLM, LangChain BaseChatModel, etc.).
+    """
+
+    def complete(self, system: str, user: str) -> LLMResponse: ...
 
 
 @dataclass
 class MockLLM:
-    """Pattern-routing mock that pretends to be an LLM.
+    """Pre-loaded response queue.
 
-    Adapters in each spike wrap this to satisfy their framework's LLM
-    interface (CrewAI's BaseLLM, LangChain's BaseChatModel, or just a
-    direct call for the custom spike).
+    Usage:
+        llm = MockLLM(responses=[DRAFT_V1, DRAFT_V2])
+        r1 = llm.complete(system=..., user=...)  # -> DRAFT_V1
+        r2 = llm.complete(system=..., user=...)  # -> DRAFT_V2
+        r3 = llm.complete(...)                   # -> raises QueueExhausted
+
+    If a framework makes an unexpected extra LLM call, the exhaustion
+    is the diagnostic — not a silent fallback. That goes in the
+    scorecard under "Observability" / "Dev experience".
     """
 
+    responses: list[str] = field(default_factory=lambda: list(DEFAULT_RESPONSES))
     model: str = "mock-claude-haiku-4-5"
     calls: list[dict[str, Any]] = field(default_factory=list)
 
-    def complete(self, system: str, user: str) -> MockLLMResponse:
-        """One-shot completion. system + user → text.
-
-        Routing rules (case-insensitive on the user prompt):
-          - contains "revise" or "feedback" → DRAFT_V2
-          - contains "draft" or "announcement" → DRAFT_V1
-          - otherwise → GENERIC_ACK
-        """
-        lowered = user.lower()
-        if "revise" in lowered or "feedback" in lowered:
-            text, intent = DRAFT_V2, "revise"
-        elif "draft" in lowered or "announcement" in lowered:
-            text, intent = DRAFT_V1, "draft"
-        else:
-            text, intent = GENERIC_ACK, "other"
-
+    def complete(self, system: str, user: str) -> LLMResponse:
         idx = len(self.calls)
+        if idx >= len(self.responses):
+            raise QueueExhausted(
+                f"MockLLM queue exhausted after {idx} call(s). "
+                f"Spike expected exactly {len(self.responses)} LLM call(s). "
+                f"Last user prompt: {user[:120]!r}"
+            )
+        text = self.responses[idx]
         self.calls.append(
             {
                 "call_index": idx,
@@ -102,10 +111,13 @@ class MockLLM:
                 "system": system,
                 "user": user,
                 "output": text,
-                "matched_intent": intent,
             }
         )
-        return MockLLMResponse(text=text, call_index=idx, matched_intent=intent)
+        return LLMResponse(text=text, call_index=idx)
 
     def reset(self) -> None:
         self.calls.clear()
+
+
+class QueueExhausted(RuntimeError):
+    """Raised when a spike makes more LLM calls than the queue holds."""

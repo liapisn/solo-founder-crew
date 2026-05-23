@@ -4,7 +4,25 @@ Provides a deterministic MockLLM and a structured run trace so all three
 candidate implementations (custom, CrewAI, LangGraph) can be scored
 against the same fixtures with zero API cost.
 """
-from .mock_llm import MockLLM, MockLLMResponse
+from .mock_llm import (
+    DEFAULT_RESPONSES,
+    DRAFT_V1,
+    DRAFT_V2,
+    LLMClient,
+    LLMResponse,
+    MockLLM,
+    QueueExhausted,
+)
 from .trace import RunTrace, TraceEvent
 
-__all__ = ["MockLLM", "MockLLMResponse", "RunTrace", "TraceEvent"]
+__all__ = [
+    "DEFAULT_RESPONSES",
+    "DRAFT_V1",
+    "DRAFT_V2",
+    "LLMClient",
+    "LLMResponse",
+    "MockLLM",
+    "QueueExhausted",
+    "RunTrace",
+    "TraceEvent",
+]
