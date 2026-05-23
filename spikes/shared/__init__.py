@@ -4,6 +4,7 @@ Provides a deterministic MockLLM and a structured run trace so all three
 candidate implementations (custom, CrewAI, LangGraph) can be scored
 against the same fixtures with zero API cost.
 """
+from .env import load_dotenv
 from .mock_llm import (
     DEFAULT_RESPONSES,
     DRAFT_V1,
@@ -27,4 +28,5 @@ __all__ = [
     "RealLLM",
     "RunTrace",
     "TraceEvent",
+    "load_dotenv",
 ]

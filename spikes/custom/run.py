@@ -22,17 +22,29 @@ from pathlib import Path
 
 from jsonschema import validate
 
-from hitl import ScriptedHITL
-from llm import LLM, MockBackedLLM, RealBackedLLM
-from roles import MARKETING
-from runtime import Runtime
-from tools import PublisherTool
+import sys
+
+# Add `spikes/` to sys.path so `shared` resolves the same way `llm`,
+# `runtime`, etc. resolve from the local spike directory.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from hitl import ScriptedHITL  # noqa: E402
+from llm import LLM, MockBackedLLM, RealBackedLLM  # noqa: E402
+from roles import MARKETING  # noqa: E402
+from runtime import Runtime  # noqa: E402
+from shared import load_dotenv  # noqa: E402
+from tools import PublisherTool  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = ROOT / "schemas" / "venture_brief.schema.json"
 BRIEF = ROOT / "scenarios" / "fixtures" / "passly_brief.json"
 RESPONSES = ROOT / "scenarios" / "fixtures" / "founder_responses.json"
+DOTENV = ROOT / ".env"
 OUT = Path(__file__).parent / "out"
+
+# Load .env early so RealLLM construction finds ANTHROPIC_API_KEY when
+# --real-llm is passed. No-op when .env doesn't exist.
+load_dotenv(DOTENV)
 
 
 def select_llm(real: bool) -> LLM:
