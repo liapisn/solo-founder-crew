@@ -9,7 +9,7 @@ Pure-Python, no framework dependencies beyond the Anthropic SDK and jsonschema. 
 | [`roles.py`](roles.py) | ~45 | `Role` + `DecisionRights` dataclasses; `MARKETING` role definition |
 | [`tools.py`](tools.py) | ~45 | `PublisherTool` stub + `enforce_tool_access()` |
 | [`hitl.py`](hitl.py) | ~30 | `ScriptedHITL` — reads founder responses from fixture |
-| [`llm.py`](llm.py) | ~30 | Anthropic SDK wrapper |
+| [`llm.py`](llm.py) | ~45 | LLM bridge: `MockBackedLLM` (default) + `RealBackedLLM` (--real-llm) |
 | [`runtime.py`](runtime.py) | ~110 | Orchestrator: memory, trace, draft → HITL → revise → publish flow |
 | [`run.py`](run.py) | ~50 | Entrypoint; validates brief against schema, runs, writes outputs |
 
@@ -17,11 +17,20 @@ Total: ~310 LOC. Slightly over the 300 budget — close enough; can trim if rubr
 
 ## Run
 
+Default — deterministic mock, no API key:
+
+```bash
+cd spikes/custom
+pip install -r requirements.txt   # only jsonschema
+python run.py
+```
+
+Optional `--real-llm` smoke test (unscored, ~$0.02 at claude-haiku-4-5):
+
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
-cd spikes/custom
-pip install -r requirements.txt
-python run.py
+pip install anthropic
+python run.py --real-llm
 ```
 
 Outputs land in `out/`:

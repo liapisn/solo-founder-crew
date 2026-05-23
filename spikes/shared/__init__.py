@@ -13,6 +13,7 @@ from .mock_llm import (
     MockLLM,
     QueueExhausted,
 )
+from .real_llm import RealLLM
 from .trace import RunTrace, TraceEvent
 
 __all__ = [
@@ -23,6 +24,7 @@ __all__ = [
     "LLMResponse",
     "MockLLM",
     "QueueExhausted",
+    "RealLLM",
     "RunTrace",
     "TraceEvent",
 ]

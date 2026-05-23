@@ -1,10 +1,13 @@
 """Custom-spike entrypoint.
 
-Usage:
-    export ANTHROPIC_API_KEY=...
+Usage (default, no API key, deterministic mock):
     cd spikes/custom
-    pip install -r requirements.txt
     python run.py
+
+Optional real-LLM smoke test (unscored, ~$0.02):
+    export ANTHROPIC_API_KEY=...
+    pip install -r requirements.txt
+    python run.py --real-llm
 
 Produces:
     out/final_announcement.txt
@@ -12,6 +15,7 @@ Produces:
 """
 from __future__ import annotations
 
+import argparse
 import asyncio
 import json
 from pathlib import Path
@@ -19,7 +23,7 @@ from pathlib import Path
 from jsonschema import validate
 
 from hitl import ScriptedHITL
-from llm import AnthropicLLM
+from llm import LLM, MockBackedLLM, RealBackedLLM
 from roles import MARKETING
 from runtime import Runtime
 from tools import PublisherTool
@@ -31,7 +35,11 @@ RESPONSES = ROOT / "scenarios" / "fixtures" / "founder_responses.json"
 OUT = Path(__file__).parent / "out"
 
 
-async def main() -> None:
+def select_llm(real: bool) -> LLM:
+    return RealBackedLLM() if real else MockBackedLLM()
+
+
+async def main(real_llm: bool) -> None:
     brief = json.loads(BRIEF.read_text(encoding="utf-8"))
     schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
     validate(instance=brief, schema=schema)
@@ -41,7 +49,7 @@ async def main() -> None:
         role=MARKETING,
         hitl=ScriptedHITL(RESPONSES),
         publisher=PublisherTool(),
-        llm=AnthropicLLM(),
+        llm=select_llm(real_llm),
     )
     result = await runtime.run()
 
@@ -57,4 +65,12 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    p = argparse.ArgumentParser(description="Custom asyncio spike — Passly launch")
+    p.add_argument(
+        "--real-llm",
+        action="store_true",
+        help="Use Anthropic claude-haiku-4-5 instead of the deterministic mock. "
+             "Requires ANTHROPIC_API_KEY and `pip install anthropic`.",
+    )
+    args = p.parse_args()
+    asyncio.run(main(args.real_llm))

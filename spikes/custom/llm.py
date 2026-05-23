@@ -1,35 +1,52 @@
-"""Thin Anthropic SDK wrapper.
+"""LLM bridge for the custom spike.
 
-Isolated so the rest of the runtime is LLM-agnostic. The spike uses
-claude-opus-4-7 (per spike charter) and keeps to one call per role action.
+Exposes a single `LLM` Protocol (async) that the runtime depends on. Two
+implementations:
+
+- `MockBackedLLM` — wraps `shared.MockLLM` (response queue, no API key).
+  Default for `python run.py` so the spike is free and deterministic.
+- `RealBackedLLM` — wraps `shared.RealLLM` (Anthropic SDK, Haiku).
+  Activated by `python run.py --real-llm`. Exists for the unscored
+  smoke test in docs/spike-charter.md §"LLM stance".
+
+Both shared clients are sync; this module runs them on a worker thread
+via `asyncio.to_thread`, keeping the spike's async runtime contract
+unchanged.
 """
 from __future__ import annotations
 
-import os
+import asyncio
+import sys
+from pathlib import Path
 from typing import Protocol
 
-from anthropic import AsyncAnthropic
-
-MODEL = "claude-opus-4-7"
-MAX_TOKENS = 1024
+# spike layout: spikes/custom/llm.py → spikes/ on path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from shared import LLMResponse, MockLLM, RealLLM  # noqa: E402
 
 
 class LLM(Protocol):
     async def complete(self, *, system: str, user: str) -> str: ...
 
 
-class AnthropicLLM:
-    def __init__(self, client: AsyncAnthropic | None = None):
-        self._client = client or AsyncAnthropic(
-            api_key=os.environ["ANTHROPIC_API_KEY"]
-        )
+class MockBackedLLM:
+    def __init__(self, client: MockLLM | None = None):
+        self._client = client or MockLLM()
 
     async def complete(self, *, system: str, user: str) -> str:
-        resp = await self._client.messages.create(
-            model=MODEL,
-            max_tokens=MAX_TOKENS,
-            system=system,
-            messages=[{"role": "user", "content": user}],
+        resp: LLMResponse = await asyncio.to_thread(
+            self._client.complete, system, user
         )
-        # spike: single text block per response
-        return resp.content[0].text.strip()
+        return resp.text
+
+
+class RealBackedLLM:
+    def __init__(self, model: str = "claude-haiku-4-5"):
+        # Construction validates ANTHROPIC_API_KEY + anthropic import.
+        self._client = RealLLM(model=model)
+
+    async def complete(self, *, system: str, user: str) -> str:
+        resp: LLMResponse = await asyncio.to_thread(
+            self._client.complete, system, user
+        )
+        return resp.text

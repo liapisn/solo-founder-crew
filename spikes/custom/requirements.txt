@@ -1,2 +1,5 @@
-anthropic>=0.40.0
+# Required for default mock-backed runs:
 jsonschema>=4.21.0
+
+# Required only when running with --real-llm:
+# anthropic>=0.40.0
