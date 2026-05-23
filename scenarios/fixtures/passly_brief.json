@@ -1,0 +1,56 @@
+{
+  "venture_id": "passly",
+  "name": "Passly",
+  "stage": "pre-launch",
+  "domain": {
+    "industry": "marketing-tech",
+    "geography": ["GR"],
+    "language": ["el", "en"]
+  },
+  "product": {
+    "one_liner": "Digital wallet passes plus AI-powered marketing for Greek SMBs.",
+    "value_props": [
+      "Loyalty and offers that live in Apple/Google Wallet — no app to install",
+      "AI drafts the campaign, the owner ships it in two clicks",
+      "Made for Greek SMBs: Greek language, GR-relevant channels and compliance"
+    ],
+    "channels": ["apple_wallet", "google_wallet", "sms", "email"]
+  },
+  "customer": {
+    "segment": "Greek small-and-medium business owners (cafés, salons, retail) running loyalty/promotions without a dedicated marketer",
+    "jobs_to_be_done": [
+      "Get repeat customers back through the door",
+      "Run a promotion this week without learning a marketing tool",
+      "Look professional without hiring an agency"
+    ],
+    "objections": [
+      "I don't have time to learn another app",
+      "My customers won't install anything",
+      "I tried SMS marketing once and it felt spammy"
+    ]
+  },
+  "voice": {
+    "tone": "Warm, plain Greek, confident without hype. English mirrors the same warmth.",
+    "do": [
+      "Speak as a peer, not a salesperson",
+      "Use concrete examples (a καφέ, a κομμωτήριο)",
+      "Lead with the outcome, not the technology"
+    ],
+    "dont": [
+      "Use 'revolutionary', 'cutting-edge', or other hype words",
+      "Promise specific revenue lift numbers",
+      "Mention live customer pilots — the venture is pre-launch"
+    ]
+  },
+  "constraints": {
+    "budget_eur_per_month": 0,
+    "out_of_scope": [
+      "Physical / hybrid retail integrations beyond passes",
+      "Markets outside Greece for the initial launch"
+    ],
+    "compliance_notes": [
+      "GDPR-conformant by default; no personal data examples in marketing copy",
+      "Pre-launch: do not imply existing paying customers"
+    ]
+  }
+}

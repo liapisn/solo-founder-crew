@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/liapisn/solo-founder-crew/schemas/venture_brief.schema.json",
+  "title": "Venture Brief",
+  "description": "Structured input describing a venture's domain, product, customer, and constraints. Component 1 of the solo-founder-crew framework. Single source of truth shared between Ch.3 prose and prototype code.",
+  "type": "object",
+  "required": ["venture_id", "name", "domain", "product", "customer", "voice", "constraints"],
+  "additionalProperties": false,
+  "properties": {
+    "venture_id": {
+      "type": "string",
+      "description": "Stable identifier (kebab-case)",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "name": { "type": "string", "minLength": 1 },
+    "stage": {
+      "type": "string",
+      "enum": ["pre-launch", "launched", "growth", "pivoting"]
+    },
+    "domain": {
+      "type": "object",
+      "required": ["industry", "geography"],
+      "properties": {
+        "industry": { "type": "string", "description": "e.g. fintech, retail-tech, marketing-tech" },
+        "geography": {
+          "type": "array",
+          "items": { "type": "string", "description": "ISO 3166-1 alpha-2 country code" },
+          "minItems": 1
+        },
+        "language": {
+          "type": "array",
+          "items": { "type": "string", "description": "BCP-47 language tag" },
+          "default": ["en"]
+        }
+      }
+    },
+    "product": {
+      "type": "object",
+      "required": ["one_liner", "value_props"],
+      "properties": {
+        "one_liner": { "type": "string", "maxLength": 200 },
+        "value_props": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "channels": {
+          "type": "array",
+          "items": { "type": "string", "description": "e.g. apple_wallet, google_wallet, sms, email" }
+        }
+      }
+    },
+    "customer": {
+      "type": "object",
+      "required": ["segment"],
+      "properties": {
+        "segment": { "type": "string", "description": "Primary customer segment, plain language" },
+        "jobs_to_be_done": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "objections": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "voice": {
+      "type": "object",
+      "required": ["tone"],
+      "properties": {
+        "tone": {
+          "type": "string",
+          "description": "Free text or controlled vocabulary, e.g. 'warm, plain Greek, confident'"
+        },
+        "do": { "type": "array", "items": { "type": "string" } },
+        "dont": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "constraints": {
+      "type": "object",
+      "properties": {
+        "budget_eur_per_month": { "type": "number", "minimum": 0 },
+        "out_of_scope": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Topics or actions the crew must not pursue"
+        },
+        "compliance_notes": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

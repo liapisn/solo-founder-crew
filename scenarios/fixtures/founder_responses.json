@@ -1,0 +1,14 @@
+{
+  "description": "Scripted founder HITL decisions for deterministic spike runs. Turn 1 rejects with feedback; turn 2 approves.",
+  "turns": [
+    {
+      "turn": 1,
+      "action": "reject",
+      "feedback": "Καλό draft αλλά πολύ formal. Να ζεστάνει το άνοιγμα — μίλα σαν σε φίλο μαγαζάτορα. Πρόσθεσε ένα μικρό ελληνικό tagline στο τέλος. Κράτησέ το κάτω από 120 λέξεις."
+    },
+    {
+      "turn": 2,
+      "action": "approve"
+    }
+  ]
+}
