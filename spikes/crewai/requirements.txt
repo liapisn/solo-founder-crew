@@ -1,3 +1,9 @@
+# Use the project-root venv: `pip install -r ../../requirements.txt`.
+# This file documents the spike's direct dependencies.
+
 crewai>=0.86,<0.110
 crewai-tools>=0.17,<0.30
 jsonschema>=4.21.0
+
+# Required only when running with --real-llm:
+# anthropic>=0.40.0

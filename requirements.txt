@@ -14,9 +14,10 @@ jsonschema>=4.21.0
 # Real-LLM smoke tests (--real-llm). Optional for mock-only runs.
 anthropic>=0.40.0
 
-# CrewAI and LangGraph are added when their respective spikes are
-# adapted (tasks #3 and #4) — they pull large dependency trees, so
-# we defer install until needed.
-# crewai>=0.80.0
+# CrewAI spike (task #3). Pulls litellm, langchain, instructor, etc.
+crewai>=0.86,<0.110
+crewai-tools>=0.17,<0.30
+
+# LangGraph spike (task #4) — uncomment when adapting that spike.
 # langgraph>=0.2.0
 # langchain-anthropic>=0.2.0

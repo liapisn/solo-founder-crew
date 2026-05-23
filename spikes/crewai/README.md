@@ -6,18 +6,26 @@ Same Passly launch scenario as [`../custom/`](../custom/), built on CrewAI's `Ag
 
 | File | Lines | Purpose |
 |---|---:|---|
-| [`roles.py`](roles.py) | ~50 | `RoleMeta` sidecar + `build_marketing_agent()` (CrewAI `Agent`) |
+| [`roles.py`](roles.py) | ~50 | `RoleMeta` sidecar + `build_marketing_agent(llm)` (CrewAI `Agent`) |
 | [`tools.py`](tools.py) | ~30 | `PublisherTool` as a CrewAI `BaseTool` |
 | [`hitl.py`](hitl.py) | ~25 | `ScriptedHITL` — reads fixture, identical contract to custom spike |
-| [`run.py`](run.py) | ~115 | Entrypoint; drives CrewAI one Task at a time so HITL gates fit between kickoffs |
+| [`llm.py`](llm.py) | ~65 | `MockCrewLLM(crewai.LLM)` (default) + `build_llm(real_llm)` |
+| [`run.py`](run.py) | ~125 | Entrypoint; argparse, drives CrewAI one Task at a time |
 
 ## Run
 
+Default — deterministic mock, no API key, no anthropic install needed beyond what's already in the project venv:
+
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
 cd spikes/crewai
-pip install -r requirements.txt
 python run.py
+```
+
+Optional `--real-llm` smoke test (unscored, ~$0.02 at claude-haiku-4-5):
+
+```bash
+# .env at the repo root must contain ANTHROPIC_API_KEY
+python run.py --real-llm
 ```
 
 ## Spike notes (rubric-relevant)
@@ -35,3 +43,15 @@ python run.py
 **Dev experience**: Fast to get an Agent + Task running. Friction shows up when the desired flow doesn't match CrewAI's `Crew.kickoff()` opinions — every workaround above is rubric evidence.
 
 **Lock-in & cost**: CrewAI depends on `litellm` (broad model coverage, good for vendor agnosticism) but pins specific Python and pydantic versions and has had API churn between minor releases. Worth a "tracking-cost" note.
+
+## Substitution friction (found during the mock adaptation)
+
+These show up as concrete cost items when you do *not* want CrewAI to call the model itself.
+
+1. **Subclassing `crewai.LLM` to inject a stub**: the parent constructor takes ~25 kwargs (timeout, temperature, top_p, n, stop, max_tokens, presence_penalty, frequency_penalty, logit_bias, response_format, seed, logprobs, top_logprobs, base_url, api_base, api_version, api_key, callbacks, reasoning_effort, stream, …) and `super().__init__(model=...)` insists on a litellm-recognised provider string even when `.call()` will be fully overridden. Concretely: had to pass `model="anthropic/claude-haiku-4-5"` as a *sentinel*, not a real route, to keep litellm's init quiet.
+
+2. **Python version pin**: latest CrewAI requires Python `<=3.13`. The project's Homebrew default is 3.14, so the venv had to be rebuilt on 3.11. Documented in the repo-root README.
+
+3. **Output format coupling**: CrewAI's agent executor parses LLM output for `"Thought: …\nFinal Answer: …"`. Plain responses get rejected and CrewAI re-prompts, blowing the call budget. The mock adapter has to wrap its canned text in that scaffold — i.e. the framework couples the LLM contract to its own parser. Not a blocker, but it leaks into the LLM substitution layer.
+
+4. **Call budget is not declarative**: even with `max_iter=1` on the Agent, the executor can make multiple LLM calls per Task while parsing/retrying. The shared mock's `QueueExhausted` exception caught this on the first run. For the custom and (anticipated) LangGraph spikes, calls per Task are explicit.

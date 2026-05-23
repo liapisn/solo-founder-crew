@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from crewai import Agent
+from crewai import Agent, LLM as CrewLLM
 
 
 @dataclass(frozen=True)
@@ -47,7 +47,7 @@ OPERATING RULES
 """
 
 
-def build_marketing_agent(llm_model: str) -> Agent:
+def build_marketing_agent(llm: CrewLLM) -> Agent:
     return Agent(
         role="Marketing for solo-founder ventures",
         goal=(
@@ -55,7 +55,7 @@ def build_marketing_agent(llm_model: str) -> Agent:
             "voice and constraints."
         ),
         backstory=_MARKETING_BACKSTORY,
-        llm=llm_model,            # CrewAI delegates to litellm
+        llm=llm,                  # MockCrewLLM (default) or crewai.LLM via litellm
         allow_delegation=False,
         verbose=False,
         max_iter=1,               # one LLM call per task — keeps the spike's call budget honest

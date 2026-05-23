@@ -1,10 +1,12 @@
 """CrewAI-spike entrypoint.
 
-Usage:
-    export ANTHROPIC_API_KEY=...
+Usage (default mock, no API key):
     cd spikes/crewai
-    pip install -r requirements.txt
     python run.py
+
+Optional real-LLM smoke test (unscored, ~$0.02 at claude-haiku-4-5):
+    cp ../../.env.example ../../.env  # then paste ANTHROPIC_API_KEY
+    python run.py --real-llm
 
 Produces:
     out/final_announcement.txt
@@ -20,27 +22,40 @@ Implementation notes (rubric evidence):
   declarative `must_escalate` concept.
 - Memory across turns is threaded manually via `context=` on the second Task.
 - Trace capture is also manual: we log each kickoff and HITL turn.
+- Mock LLM substitution requires subclassing `crewai.LLM` and bypassing
+  litellm (see `llm.py`). Less clean than the custom spike's
+  one-method Protocol — itself rubric evidence.
 """
 from __future__ import annotations
 
+import argparse
 import json
+import sys
 import time
 from pathlib import Path
 
 from jsonschema import validate
 from crewai import Crew, Task
 
-from hitl import FounderDecision, ScriptedHITL
-from roles import MARKETING_META, build_marketing_agent
-from tools import PublisherTool
+# spikes/crewai/run.py → spikes/ on path so shared resolves
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from hitl import FounderDecision, ScriptedHITL  # noqa: E402
+from llm import build_llm  # noqa: E402
+from roles import MARKETING_META, build_marketing_agent  # noqa: E402
+from shared import load_dotenv  # noqa: E402
+from tools import PublisherTool  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = ROOT / "schemas" / "venture_brief.schema.json"
 BRIEF = ROOT / "scenarios" / "fixtures" / "passly_brief.json"
 RESPONSES = ROOT / "scenarios" / "fixtures" / "founder_responses.json"
+DOTENV = ROOT / ".env"
 OUT = Path(__file__).parent / "out"
-LLM_MODEL = "anthropic/claude-opus-4-7"
 MAX_REVISIONS = 1
+
+# Pick up ANTHROPIC_API_KEY from .env when --real-llm is passed.
+load_dotenv(DOTENV)
 
 
 def draft_task(agent, brief: dict) -> Task:
@@ -75,14 +90,14 @@ def kickoff_one(task: Task) -> str:
     return str(result.raw if hasattr(result, "raw") else result).strip()
 
 
-def main() -> None:
+def main(real_llm: bool) -> None:
     brief = json.loads(BRIEF.read_text(encoding="utf-8"))
     schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
     validate(instance=brief, schema=schema)
 
     hitl = ScriptedHITL(RESPONSES)
     publisher = PublisherTool()
-    agent = build_marketing_agent(LLM_MODEL)
+    agent = build_marketing_agent(build_llm(real_llm))
     trace: list[dict] = []
 
     def event(role: str | None, action: str, inp, out) -> None:
@@ -145,4 +160,12 @@ def _write(trace: list[dict], approved: str | None) -> None:
 
 
 if __name__ == "__main__":
-    main()
+    p = argparse.ArgumentParser(description="CrewAI spike — Passly launch")
+    p.add_argument(
+        "--real-llm",
+        action="store_true",
+        help="Use Anthropic claude-haiku-4-5 via litellm instead of the "
+             "deterministic MockCrewLLM. Requires ANTHROPIC_API_KEY.",
+    )
+    args = p.parse_args()
+    main(args.real_llm)
