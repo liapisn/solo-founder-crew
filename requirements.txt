@@ -1,0 +1,22 @@
+# Top-level requirements for solo-founder-crew development.
+#
+# Install into the project venv:
+#     /opt/homebrew/bin/python3 -m venv .venv
+#     source .venv/bin/activate          # or use .venv/bin/python directly
+#     pip install -r requirements.txt
+#
+# Per-spike requirements.txt files exist for documentation but the venv
+# is the single source of truth.
+
+# Schema validation — used by all three spikes and the Venture Brief.
+jsonschema>=4.21.0
+
+# Real-LLM smoke tests (--real-llm). Optional for mock-only runs.
+anthropic>=0.40.0
+
+# CrewAI and LangGraph are added when their respective spikes are
+# adapted (tasks #3 and #4) — they pull large dependency trees, so
+# we defer install until needed.
+# crewai>=0.80.0
+# langgraph>=0.2.0
+# langchain-anthropic>=0.2.0

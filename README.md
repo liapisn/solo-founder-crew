@@ -16,16 +16,33 @@ The framework has five components (per the thesis scope):
 
 ## Status
 
-Pre-spike. Framework choice (CrewAI / LangGraph / custom) locks at the end of Part 7 of the thesis plan.
+Part 7 spike in progress. Framework choice (CrewAI / LangGraph / custom) locks once the three candidate implementations under [`spikes/`](spikes/) are scored against the rubric in [`docs/spike-charter.md`](docs/spike-charter.md).
 
 ## Layout
 
 ```
-schemas/   JSON Schema definitions (Venture Brief, Role, HITL Contract)
-src/       Python package
-tests/     pytest suites
-docs/      design notes, ADRs
+schemas/    JSON Schema definitions (Venture Brief, Role, HITL Contract)
+scenarios/  Spike test bench (Passly launch) + fixtures
+spikes/     Part 7 candidate implementations: custom, crewai, langgraph + shared
+src/        Framework package (populated post-ADR)
+tests/      pytest suites
+docs/       Charter, scorecard, ADRs
 ```
+
+## Setup
+
+A project-local venv keeps dependencies pinned and isolated from system Python.
+
+```bash
+cd solo-founder-crew
+/opt/homebrew/bin/python3 -m venv .venv          # or any Python ≥ 3.10
+source .venv/bin/activate                         # optional; can also call .venv/bin/python directly
+pip install -r requirements.txt
+
+cp .env.example .env                              # then paste your ANTHROPIC_API_KEY
+```
+
+`.env` is gitignored. The default spike runs use a deterministic mock and don't need the key — see [`spikes/README.md`](spikes/README.md).
 
 ## License
 
