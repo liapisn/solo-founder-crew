@@ -29,7 +29,9 @@ Framework construction is phased:
 | 2 | LangGraph runtime + `Crew.author_flow()` API; Passly end-to-end via framework code (see [`examples/passly_launch.py`](examples/passly_launch.py)) | ✅ done |
 | 3 | Role Library (5 roles) + rule-driven Crew Generator with audit log (see [`examples/crew_generator_demo.py`](examples/crew_generator_demo.py)) | ✅ done |
 | 4 | Production HITL via LangGraph `interrupt()` + checkpointer; `InteractiveHITL` for stdin demos (see [`examples/passly_interactive.py`](examples/passly_interactive.py)) | ✅ done |
-| 5 | pytest suite + thesis-side note update | ⏳ next |
+| 5 | pytest suite (47 tests covering primitives, role library, all four author-flow termination paths) + thesis-side note | ✅ done |
+
+**Framework construction phase closed.** Next thesis step: Chapter 3 prose drafting, citing this repo.
 
 ## Quickstart
 

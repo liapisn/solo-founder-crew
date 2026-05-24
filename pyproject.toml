@@ -56,8 +56,14 @@ include = ["solo_founder_crew*"]
 "solo_founder_crew" = ["py.typed"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
-addopts   = "-q"
+testpaths     = ["tests"]
+addopts       = "-q"
+asyncio_mode  = "auto"
+filterwarnings = [
+    # langgraph 1.0.1 emits this on import — out of our control, harmless.
+    "ignore::DeprecationWarning:langgraph",
+    "ignore::PendingDeprecationWarning:langgraph",
+]
 
 [tool.ruff]
 line-length = 100
