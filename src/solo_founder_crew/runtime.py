@@ -38,7 +38,9 @@ import json
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, TypedDict
 
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
+from langgraph.types import interrupt
 
 from solo_founder_crew.brief import VentureBrief
 from solo_founder_crew.hitl import FounderDecision, HITLContract
@@ -48,6 +50,7 @@ from solo_founder_crew.tools import ToolRegistry
 from solo_founder_crew.trace import RunTrace
 
 if TYPE_CHECKING:
+    from langgraph.checkpoint.base import BaseCheckpointSaver
     from langgraph.graph.state import CompiledStateGraph
 
 
@@ -146,20 +149,30 @@ def _make_draft_node(
     return draft_node
 
 
-def _make_hitl_node(hitl: HITLContract, trace: RunTrace):
+def _make_hitl_node():
+    """HITL gate as a LangGraph interrupt point.
+
+    The node calls ``interrupt(payload)``, which pauses the graph and
+    checkpoints state. The runner outside the graph
+    (``Crew.author_flow``) fetches a ``FounderDecision`` via the
+    configured ``HITLContract`` and resumes with ``Command(resume=…)``.
+
+    On resume, the node body runs *again* from the top — that's how
+    LangGraph delivers the resumed value. So the node MUST be
+    idempotent up to the ``interrupt()`` call. We keep it
+    side-effect-free: trace recording for the founder review happens
+    in the runner, not here.
+    """
+
     async def hitl_node(state: AuthorFlowState) -> dict[str, Any]:
-        decision: FounderDecision = await hitl.review(
-            state["draft"], turn=state["turn"]
+        decision_payload = interrupt(
+            {
+                "artifact": state["draft"],
+                "turn": state["turn"],
+            }
         )
-        payload = {"action": decision.action, "feedback": decision.feedback}
-        trace.record(
-            role="founder",
-            action="hitl_review",
-            input=state["draft"],
-            output=decision.feedback or "",
-            decision=decision.action,
-        )
-        return {"decision": payload}
+        # decision_payload is the dict the runner passed to Command(resume=...)
+        return {"decision": decision_payload}
 
     return hitl_node
 
@@ -275,25 +288,29 @@ def build_author_graph(
     *,
     role: Role,
     llm: LLMClient,
-    hitl: HITLContract,
     tools: ToolRegistry,
     trace: RunTrace | None = None,
+    checkpointer: "BaseCheckpointSaver | None" = None,
 ) -> AuthorFlowGraph:
-    """Compose the Author Flow StateGraph and compile it.
+    """Compose the Author Flow StateGraph and compile it with a checkpointer.
 
-    Returns the compiled graph wrapped in `AuthorFlowGraph` (which also
-    carries the trace the nodes will write into). Invoke via the
-    standard LangGraph API:
+    The HITL gate is implemented as a LangGraph ``interrupt()`` (see
+    ``_make_hitl_node``). The caller drives the interrupt loop via
+    ``Crew.author_flow``; this function only knows how to build the
+    graph.
 
-        graph = build_author_graph(...)
-        final = await graph.compiled.ainvoke(initial_state)
+    ``checkpointer`` defaults to in-process ``MemorySaver`` — enough
+    for tests and same-process interactive runs. Pass a SqliteSaver
+    or any other ``BaseCheckpointSaver`` for cross-process resume.
     """
     if trace is None:
         trace = RunTrace()
+    if checkpointer is None:
+        checkpointer = MemorySaver()
 
     g: StateGraph = StateGraph(AuthorFlowState)
     g.add_node("draft", _make_draft_node(llm, role, trace))
-    g.add_node("hitl", _make_hitl_node(hitl, trace))
+    g.add_node("hitl", _make_hitl_node())
     g.add_node("revise", _make_revise_node(llm, role, trace))
     g.add_node("publish", _make_publish_node(tools, role, trace))
     g.add_node("kill", _make_kill_node(trace))
@@ -316,4 +333,4 @@ def build_author_graph(
     g.add_edge("kill", END)
     g.add_edge("exhausted", END)
 
-    return AuthorFlowGraph(compiled=g.compile(), trace=trace)
+    return AuthorFlowGraph(compiled=g.compile(checkpointer=checkpointer), trace=trace)

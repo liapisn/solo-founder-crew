@@ -80,3 +80,27 @@ class ScriptedHITL:
                 f"(have turns {sorted(self._by_turn)})"
             )
         return self._by_turn[turn]
+
+
+class InteractiveHITL:
+    """Terminal-based HITL gate. Prompts the founder on stdin.
+
+    Used for manual testing and for the worked-example demos in this
+    repo. Production deployments swap this for a UI/webhook/queue
+    implementation that satisfies the same ``HITLContract`` Protocol.
+    """
+
+    async def review(self, artifact: str, *, turn: int) -> FounderDecision:
+        print(f"\n── FOUNDER GATE  turn {turn} ──")
+        print(artifact.rstrip())
+        print(f"── end of artifact ─────────────")
+        while True:
+            choice = input("Action [approve/reject/kill]: ").strip().lower()
+            if choice == "approve":
+                return FounderDecision(action="approve")
+            if choice == "kill":
+                return FounderDecision(action="kill")
+            if choice == "reject":
+                feedback = input("Feedback (one line, optional): ").strip()
+                return FounderDecision(action="reject", feedback=feedback or None)
+            print("invalid; expected one of: approve | reject | kill")

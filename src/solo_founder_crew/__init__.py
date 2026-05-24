@@ -26,7 +26,12 @@ from solo_founder_crew.crew_generator import (
     CrewRule,
     RuleDecision,
 )
-from solo_founder_crew.hitl import FounderDecision, HITLContract, ScriptedHITL
+from solo_founder_crew.hitl import (
+    FounderDecision,
+    HITLContract,
+    InteractiveHITL,
+    ScriptedHITL,
+)
 from solo_founder_crew.llm import (
     LLMClient,
     LLMResponse,
@@ -97,6 +102,7 @@ __all__ = [
     "HITLContract",
     "FounderDecision",
     "ScriptedHITL",
+    "InteractiveHITL",
     # LLM substrate
     "LLMClient",
     "LLMResponse",

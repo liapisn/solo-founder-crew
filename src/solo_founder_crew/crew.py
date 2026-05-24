@@ -8,16 +8,27 @@ The public surface is intentionally narrow:
 
     crew = Crew(brief=…, roles=[marketing], llm=…, hitl=…, tools=…)
     result = await crew.author_flow(task_description="Draft a launch announcement")
-    print(result.status, result.approved_artifact)
+    print(result.status, result.approved_artifact, result.thread_id)
     result.trace.write("trace.json")
 
-Citable in Ch.3 §"Crew Generator" (the algorithmic side) and §"Public
+Phase 4 note — the HITL gate inside the graph is a LangGraph
+``interrupt()`` call. ``Crew.author_flow`` is responsible for driving
+the interrupt loop: when the graph pauses, fetch a ``FounderDecision``
+via ``self.hitl.review(...)``, then resume with ``Command(resume=…)``.
+The graph's checkpointer persists state across the interrupt so
+nothing is lost between pause and resume (and, with a persistent
+checkpointer like ``SqliteSaver``, across process restarts).
+
+Citable in Ch.3 §"Crew Generator" (algorithmic side) and §"Public
 API" (this entry point).
 """
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass, field
-from typing import Sequence
+from typing import TYPE_CHECKING, Any, Sequence
+
+from langgraph.types import Command
 
 from solo_founder_crew.brief import VentureBrief
 from solo_founder_crew.hitl import HITLContract
@@ -31,20 +42,25 @@ from solo_founder_crew.runtime import (
 from solo_founder_crew.tools import ToolRegistry
 from solo_founder_crew.trace import RunTrace
 
+if TYPE_CHECKING:
+    from langgraph.checkpoint.base import BaseCheckpointSaver
+
 
 @dataclass(frozen=True)
 class AuthorFlowResult:
     """Outcome of `crew.author_flow(...)`.
 
-    `status` is one of "shipped" | "killed" | "exhausted".
-    `approved_artifact` is the final approved text iff status == "shipped".
-    `trace` is the structured run log — same shape as the spike traces.
-    `final_state` is the LangGraph terminal state (kept for debugging).
+    ``status`` is one of "shipped" | "killed" | "exhausted".
+    ``approved_artifact`` is the final approved text iff status == "shipped".
+    ``trace`` is the structured run log.
+    ``thread_id`` identifies the run for checkpointer-based resume.
+    ``final_state`` is the LangGraph terminal state (kept for debugging).
     """
 
     status: str
     approved_artifact: str | None
     trace: RunTrace
+    thread_id: str
     final_state: dict
 
 
@@ -52,13 +68,10 @@ class AuthorFlowResult:
 class Crew:
     """One venture's operating crew.
 
-    A Crew is constructed once and may run many flows. Its services
-    (LLM, HITL, ToolRegistry) are reused across runs; the trace can be
-    reset between runs via `crew.reset_trace()` if needed.
-
-    The minimal usable shape is one role + one LLM + one HITL gate +
-    one tool. The Crew Generator (Phase 3) will produce these
-    automatically from a Venture Brief.
+    A Crew is constructed once and may run many flows. Services
+    (LLM, HITL, ToolRegistry) are reused across runs. The optional
+    ``checkpointer`` allows cross-process pause/resume; default is
+    in-memory.
     """
 
     brief: VentureBrief
@@ -67,6 +80,7 @@ class Crew:
     hitl: HITLContract
     tools: ToolRegistry
     trace: RunTrace = field(default_factory=RunTrace)
+    checkpointer: "BaseCheckpointSaver | None" = None
 
     def role(self, name: str) -> Role:
         """Look up a role by name. Raises KeyError if absent."""
@@ -90,55 +104,78 @@ class Crew:
         role: Role | str | None = None,
         publish_tool: str = "publisher_tool",
         max_revisions: int = 1,
+        thread_id: str | None = None,
     ) -> AuthorFlowResult:
         """Run the canonical solo-founder author flow.
 
-        ``role`` defaults to the crew's sole role; pass a name or Role
-        explicitly when the crew has more than one. ``publish_tool``
-        must be in the named role's ``tools`` allowlist (the
-        ToolRegistry enforces this at invoke time).
+        Drives the LangGraph interrupt loop: when the graph pauses at
+        the HITL gate, this method calls ``self.hitl.review(...)`` and
+        resumes with the decision. Returns when the graph reaches a
+        terminal node (publish / kill / exhausted).
+
+        ``thread_id`` identifies the run for checkpointer-based
+        resume; one is auto-generated if not passed. The id is
+        returned on the ``AuthorFlowResult`` so callers can resume
+        later from a different process (with a persistent
+        checkpointer).
         """
         chosen_role = self._resolve_role(role)
-        if not chosen_role.may_perform(DRAFT_ACTION):
-            raise PermissionError(
-                f"Role {chosen_role.name!r} cannot perform {DRAFT_ACTION!r} "
-                f"(decision_rights.can={chosen_role.decision_rights.can})"
-            )
-        if publish_tool not in chosen_role.tools:
-            raise PermissionError(
-                f"Role {chosen_role.name!r} does not hold publish_tool "
-                f"{publish_tool!r} (tools={chosen_role.tools})"
-            )
+        self._preflight(chosen_role, publish_tool)
 
-        # Set scenario name on the trace for serialised output.
         if not self.trace.scenario:
             self.trace.scenario = f"author_flow::{self.brief.venture_id}"
+        if thread_id is None:
+            thread_id = f"run-{uuid.uuid4().hex[:12]}"
 
         graph = build_author_graph(
             role=chosen_role,
             llm=self.llm,
-            hitl=self.hitl,
             tools=self.tools,
             trace=self.trace,
+            checkpointer=self.checkpointer,
         )
+        config: dict[str, Any] = {"configurable": {"thread_id": thread_id}}
 
         initial: AuthorFlowState = {
             "brief": self.brief.as_dict(),
-            "role": {
-                "name": chosen_role.name,
-                "tools": list(chosen_role.tools),
-            },
+            "role": {"name": chosen_role.name, "tools": list(chosen_role.tools)},
             "task_description": task_description,
             "max_revisions": max_revisions,
             "publish_tool": publish_tool,
             "turn": 0,
         }
-        final = await graph.compiled.ainvoke(initial)
+
+        next_input: Any = initial
+        final: dict[str, Any] = {}
+        while True:
+            final = await graph.compiled.ainvoke(next_input, config=config)
+            interrupt_value = self._pending_interrupt(graph.compiled, config)
+            if interrupt_value is None:
+                break
+
+            # The graph is paused at the HITL gate.
+            artifact = interrupt_value["artifact"]
+            turn = interrupt_value["turn"]
+            decision = await self.hitl.review(artifact, turn=turn)
+            self.trace.record(
+                role="founder",
+                action="hitl_review",
+                input=artifact,
+                output=decision.feedback or "",
+                decision=decision.action,
+            )
+            next_input = Command(
+                resume={
+                    "action": decision.action,
+                    "feedback": decision.feedback,
+                }
+            )
 
         return AuthorFlowResult(
             status=final.get("status", "unknown"),
             approved_artifact=final.get("approved_artifact"),
             trace=self.trace,
+            thread_id=thread_id,
             final_state=dict(final),
         )
 
@@ -154,3 +191,32 @@ class Crew:
         raise ValueError(
             f"Crew has {len(self.roles)} roles; specify which with role=<name>"
         )
+
+    def _preflight(self, role: Role, publish_tool: str) -> None:
+        if not role.may_perform(DRAFT_ACTION):
+            raise PermissionError(
+                f"Role {role.name!r} cannot perform {DRAFT_ACTION!r} "
+                f"(decision_rights.can={role.decision_rights.can})"
+            )
+        if publish_tool not in role.tools:
+            raise PermissionError(
+                f"Role {role.name!r} does not hold publish_tool "
+                f"{publish_tool!r} (tools={role.tools})"
+            )
+
+    @staticmethod
+    def _pending_interrupt(compiled, config: dict[str, Any]) -> dict[str, Any] | None:
+        """Read interrupt payload from the checkpointer if the graph is paused.
+
+        Returns the dict the ``hitl_node`` passed to ``interrupt(...)``,
+        or ``None`` if the graph is in a terminal state.
+        """
+        state = compiled.get_state(config)
+        if not state.tasks:
+            return None
+        for task in state.tasks:
+            for inter in getattr(task, "interrupts", ()) or ():
+                # LangGraph interrupt payload is on .value
+                if getattr(inter, "value", None) is not None:
+                    return inter.value
+        return None
