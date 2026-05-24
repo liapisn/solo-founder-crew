@@ -26,18 +26,28 @@ Framework construction is phased:
 | Phase | Scope | State |
 |---|---|---|
 | 1 | Package skeleton + primitive abstractions (`Role`, `DecisionRights`, `HITLContract`, `ScriptedHITL`, `ToolRegistry`, `TraceEvent`, `RunTrace`, `LLMClient`, `MockLLM`, `RealLLM`, `VentureBrief`) | ✅ done |
-| 2 | LangGraph runtime + `Crew.from_brief()` API; Passly end-to-end via framework code | ⏳ next |
-| 3 | Role Library catalogue + Crew Generator algorithm | pending |
+| 2 | LangGraph runtime + `Crew.author_flow()` API; Passly end-to-end via framework code (see [`examples/passly_launch.py`](examples/passly_launch.py)) | ✅ done |
+| 3 | Role Library catalogue + Crew Generator algorithm | ⏳ next |
 | 4 | Production HITL via `interrupt()` + checkpointer-backed memory | pending |
 | 5 | pytest suite + thesis-side note update | pending |
 
 ## Quickstart
 
+```bash
+cd solo-founder-crew
+.venv/bin/python examples/passly_launch.py            # mock, deterministic, free
+.venv/bin/python examples/passly_launch.py --real-llm # claude-haiku-4-5, ~$0.02
+```
+
+Shape of the public API as of Phase 2:
+
 ```python
-from solo_founder_crew import VentureBrief, Role, DecisionRights, ScriptedHITL, MockLLM
+from solo_founder_crew import (
+    Crew, Role, DecisionRights, VentureBrief,
+    ScriptedHITL, ToolRegistry, MockLLM,
+)
 
 brief = VentureBrief.from_file("scenarios/fixtures/passly_brief.json")
-
 marketing = Role(
     name="marketing",
     goal="Draft customer-facing announcements.",
@@ -49,11 +59,28 @@ marketing = Role(
     tools=("publisher_tool",),
 )
 
-llm = MockLLM(responses=["draft v1...", "draft v2..."])
-hitl = ScriptedHITL.from_file("scenarios/fixtures/founder_responses.json")
+tools = ToolRegistry()
+tools.register("publisher_tool", my_publisher_fn,
+               escalates="final_approval_before_publish")
 
-# Runtime (Phase 2) will tie these together via Crew.from_brief(...).
+crew = Crew(
+    brief=brief, roles=[marketing],
+    llm=MockLLM(responses=["draft v1...", "draft v2..."]),
+    hitl=ScriptedHITL.from_file("scenarios/fixtures/founder_responses.json"),
+    tools=tools,
+)
+
+result = await crew.author_flow(
+    task_description="Draft a launch announcement for this venture."
+)
+print(result.status, result.approved_artifact)
+result.trace.write("out/trace.json")
 ```
+
+The Author Flow graph topology is also a first-class artifact —
+[`docs/author_flow.mermaid`](docs/author_flow.mermaid) is generated
+from the same `build_author_graph(...)` the runtime calls. Same
+diagram as the [scenario specification](scenarios/passly_launch.md).
 
 ## Layout
 

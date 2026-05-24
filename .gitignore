@@ -26,3 +26,6 @@ build/
 # Secrets / local
 *.local
 secrets/
+
+# Example run artefacts
+examples/out/

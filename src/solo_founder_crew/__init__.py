@@ -18,6 +18,7 @@ Each name above maps to a citable concept in Chapter 3 of the thesis.
 from __future__ import annotations
 
 from solo_founder_crew.brief import VentureBrief
+from solo_founder_crew.crew import AuthorFlowResult, Crew
 from solo_founder_crew.hitl import FounderDecision, HITLContract, ScriptedHITL
 from solo_founder_crew.llm import (
     LLMClient,
@@ -28,6 +29,11 @@ from solo_founder_crew.llm import (
     load_dotenv,
 )
 from solo_founder_crew.role import DecisionRights, Role
+from solo_founder_crew.runtime import (
+    AuthorFlowGraph,
+    AuthorFlowState,
+    build_author_graph,
+)
 from solo_founder_crew.tools import (
     Tool,
     ToolPermissionError,
@@ -45,7 +51,13 @@ __all__ = [
     # Component 2 — Role primitives
     "Role",
     "DecisionRights",
-    # Component 4 (partial) — tools + trace, runtime in Phase 2
+    # Component 3+4 — Crew + Orchestration Runtime
+    "Crew",
+    "AuthorFlowResult",
+    "AuthorFlowGraph",
+    "AuthorFlowState",
+    "build_author_graph",
+    # Component 4 (cont.) — tools + trace
     "Tool",
     "ToolSpec",
     "ToolRegistry",
