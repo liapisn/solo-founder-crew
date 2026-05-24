@@ -19,6 +19,13 @@ from __future__ import annotations
 
 from solo_founder_crew.brief import VentureBrief
 from solo_founder_crew.crew import AuthorFlowResult, Crew
+from solo_founder_crew.crew_generator import (
+    DEFAULT_RULES,
+    CrewGenerationResult,
+    CrewGenerator,
+    CrewRule,
+    RuleDecision,
+)
 from solo_founder_crew.hitl import FounderDecision, HITLContract, ScriptedHITL
 from solo_founder_crew.llm import (
     LLMClient,
@@ -29,6 +36,15 @@ from solo_founder_crew.llm import (
     load_dotenv,
 )
 from solo_founder_crew.role import DecisionRights, Role
+from solo_founder_crew.roles_library import (
+    ROLE_LIBRARY,
+    RoleFactory,
+    make_customer_support,
+    make_finance,
+    make_marketing,
+    make_product,
+    make_sales,
+)
 from solo_founder_crew.runtime import (
     AuthorFlowGraph,
     AuthorFlowState,
@@ -48,10 +64,23 @@ __all__ = [
     "__version__",
     # Component 1 — Venture Brief
     "VentureBrief",
-    # Component 2 — Role primitives
+    # Component 2 — Role primitives + library
     "Role",
     "DecisionRights",
-    # Component 3+4 — Crew + Orchestration Runtime
+    "RoleFactory",
+    "ROLE_LIBRARY",
+    "make_marketing",
+    "make_product",
+    "make_customer_support",
+    "make_sales",
+    "make_finance",
+    # Component 3 — Crew Generator
+    "CrewGenerator",
+    "CrewGenerationResult",
+    "CrewRule",
+    "RuleDecision",
+    "DEFAULT_RULES",
+    # Component 4 — Crew + Orchestration Runtime
     "Crew",
     "AuthorFlowResult",
     "AuthorFlowGraph",

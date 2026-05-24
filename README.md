@@ -27,8 +27,8 @@ Framework construction is phased:
 |---|---|---|
 | 1 | Package skeleton + primitive abstractions (`Role`, `DecisionRights`, `HITLContract`, `ScriptedHITL`, `ToolRegistry`, `TraceEvent`, `RunTrace`, `LLMClient`, `MockLLM`, `RealLLM`, `VentureBrief`) | ✅ done |
 | 2 | LangGraph runtime + `Crew.author_flow()` API; Passly end-to-end via framework code (see [`examples/passly_launch.py`](examples/passly_launch.py)) | ✅ done |
-| 3 | Role Library catalogue + Crew Generator algorithm | ⏳ next |
-| 4 | Production HITL via `interrupt()` + checkpointer-backed memory | pending |
+| 3 | Role Library (5 roles) + rule-driven Crew Generator with audit log (see [`examples/crew_generator_demo.py`](examples/crew_generator_demo.py)) | ✅ done |
+| 4 | Production HITL via `interrupt()` + checkpointer-backed memory | ⏳ next |
 | 5 | pytest suite + thesis-side note update | pending |
 
 ## Quickstart
