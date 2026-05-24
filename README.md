@@ -19,11 +19,41 @@ The framework has five components (per the thesis scope):
 Part 7 closed (2026-05-23). **Orchestration substrate locked: LangGraph.**
 See [`docs/adr/0001-framework-choice.md`](docs/adr/0001-framework-choice.md)
 for the decision and [`docs/spike-scorecard.md`](docs/spike-scorecard.md) for
-the rubric scoring. The framework abstractions
-(`Role`, `DecisionRights`, `HITLContract`, `ToolRegistry`) carry forward
-from `spikes/custom/` into `src/solo_founder_crew/`; LangGraph supplies
-the underlying graph executor, `interrupt()`-based HITL, and the
-checkpointer for cross-session memory.
+the rubric scoring.
+
+Framework construction is phased:
+
+| Phase | Scope | State |
+|---|---|---|
+| 1 | Package skeleton + primitive abstractions (`Role`, `DecisionRights`, `HITLContract`, `ScriptedHITL`, `ToolRegistry`, `TraceEvent`, `RunTrace`, `LLMClient`, `MockLLM`, `RealLLM`, `VentureBrief`) | ✅ done |
+| 2 | LangGraph runtime + `Crew.from_brief()` API; Passly end-to-end via framework code | ⏳ next |
+| 3 | Role Library catalogue + Crew Generator algorithm | pending |
+| 4 | Production HITL via `interrupt()` + checkpointer-backed memory | pending |
+| 5 | pytest suite + thesis-side note update | pending |
+
+## Quickstart
+
+```python
+from solo_founder_crew import VentureBrief, Role, DecisionRights, ScriptedHITL, MockLLM
+
+brief = VentureBrief.from_file("scenarios/fixtures/passly_brief.json")
+
+marketing = Role(
+    name="marketing",
+    goal="Draft customer-facing announcements.",
+    system_prompt="You are Marketing for solo-founder ventures...",
+    decision_rights=DecisionRights(
+        can=("draft_content", "revise_content"),
+        must_escalate=("final_approval_before_publish",),
+    ),
+    tools=("publisher_tool",),
+)
+
+llm = MockLLM(responses=["draft v1...", "draft v2..."])
+hitl = ScriptedHITL.from_file("scenarios/fixtures/founder_responses.json")
+
+# Runtime (Phase 2) will tie these together via Crew.from_brief(...).
+```
 
 ## Layout
 

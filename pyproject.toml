@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "solo-founder-crew"
+version = "0.1.0"
+description = "Multi-agent operating model for solo-founder digital startups (MBA διπλωματική, Liapis 2026)."
+readme = "README.md"
+requires-python = ">=3.10,<3.14"
+license = { text = "Proprietary — academic work in progress" }
+authors = [
+    { name = "Nikolaos Liapis", email = "nikos@dionapp.com" },
+]
+keywords = [
+    "solo-founder",
+    "multi-agent",
+    "orchestration",
+    "human-in-the-loop",
+    "langgraph",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+# Runtime deps. Pins reflect what was used to close the Part 7 spike
+# (ADR 0001) — bump deliberately, not by drift.
+dependencies = [
+    "jsonschema>=4.21,<5",
+    "langgraph>=1.0,<2",
+    "langchain-anthropic>=0.3,<0.4",
+    "anthropic>=0.40,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.6",
+]
+
+[project.urls]
+Repository = "https://github.com/liapisn/solo-founder-crew"
+Thesis    = "https://github.com/liapisn/Diplomatic"
+
+[tool.setuptools.packages.find]
+where   = ["src"]
+include = ["solo_founder_crew*"]
+
+[tool.setuptools.package-data]
+"solo_founder_crew" = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts   = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
