@@ -17,14 +17,14 @@ import json
 from pathlib import Path
 from typing import Annotated, Any, TypedDict
 
-from langchain_anthropic import ChatAnthropic
 from langgraph.graph import END, START, StateGraph
 
 from hitl import FounderDecision, ScriptedHITL
 from roles import MARKETING, Role
 from tools import PublisherTool, enforce_tool_access
 
-LLM_MODEL = "claude-opus-4-7"
+# LLM construction now lives in llm.py (build_llm). The graph only
+# requires state["llm"] to expose `.invoke(messages).content`.
 MAX_REVISIONS = 1
 
 
@@ -147,7 +147,3 @@ def build_graph():
     g.add_edge("revise", "hitl")
     g.add_edge("publish", END)
     return g.compile()
-
-
-def make_llm():
-    return ChatAnthropic(model=LLM_MODEL, max_tokens=1024)

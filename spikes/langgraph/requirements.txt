@@ -1,3 +1,10 @@
-langgraph>=0.2,<0.5
-langchain-anthropic>=0.3,<0.5
+# Use the project-root venv: `pip install -r ../../requirements.txt`.
+# This file documents the spike's direct dependencies.
+
+langgraph>=0.2.0
+langchain-anthropic>=0.3.0
 jsonschema>=4.21.0
+
+# Required only when running with --real-llm (already pulled in via
+# langchain-anthropic, but kept here for clarity):
+# anthropic>=0.40.0
