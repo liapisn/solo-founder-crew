@@ -16,7 +16,14 @@ The framework has five components (per the thesis scope):
 
 ## Status
 
-Part 7 spike in progress. Framework choice (CrewAI / LangGraph / custom) locks once the three candidate implementations under [`spikes/`](spikes/) are scored against the rubric in [`docs/spike-charter.md`](docs/spike-charter.md).
+Part 7 closed (2026-05-23). **Orchestration substrate locked: LangGraph.**
+See [`docs/adr/0001-framework-choice.md`](docs/adr/0001-framework-choice.md)
+for the decision and [`docs/spike-scorecard.md`](docs/spike-scorecard.md) for
+the rubric scoring. The framework abstractions
+(`Role`, `DecisionRights`, `HITLContract`, `ToolRegistry`) carry forward
+from `spikes/custom/` into `src/solo_founder_crew/`; LangGraph supplies
+the underlying graph executor, `interrupt()`-based HITL, and the
+checkpointer for cross-session memory.
 
 ## Layout
 
