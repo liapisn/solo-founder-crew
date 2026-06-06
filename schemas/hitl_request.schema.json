@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/liapisn/solo-founder-crew/schemas/hitl_request.schema.json",
+  "title": "HITL Request",
+  "description": "A typed, transport-agnostic decision request emitted by the Orchestration Runtime (Component 4) at every Human-in-the-Loop gate (Component 5). It is the enriched form of the LangGraph interrupt payload: where the runtime once paused with only {artifact, turn}, it now emits a routable, renderable HITLRequest that any surface — stdin, a webhook, SMS, or a Discord channel — can present to the founder without knowing anything about the runtime internals. The founder's reply conforms to FounderResponse ($defs). Single source of truth shared between Ch.3 prose (§3.7 Orchestration Runtime, §3.8 HITL Contract) and prototype code.",
+  "type": "object",
+  "required": ["request_id", "thread_id", "venture_id", "turn", "role", "action", "artifact"],
+  "additionalProperties": false,
+  "properties": {
+    "request_id": {
+      "type": "string",
+      "description": "Unique id for this gate instance. Correlates the rendered prompt (e.g. a Discord message) with the parked run so the founder's reply can resume the right interrupt. Distinct from thread_id: one run (thread_id) may raise many requests across its turns.",
+      "minLength": 1
+    },
+    "thread_id": {
+      "type": "string",
+      "description": "The LangGraph run/flow identifier — the checkpointer resume key. The surface adapter passes this back unchanged so Crew.author_flow can resume the correct run, even after a process restart.",
+      "minLength": 1
+    },
+    "venture_id": {
+      "type": "string",
+      "description": "Which venture raised this request (matches Venture Brief venture_id). Lets one deployment route requests from multiple ventures to distinct destinations.",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "turn": {
+      "type": "integer",
+      "description": "1-indexed gate turn within the run. A surface can branch on first vs subsequent revisions (e.g. thread the second review under the first).",
+      "minimum": 1
+    },
+    "role": {
+      "type": "object",
+      "description": "The role on whose behalf the founder is being asked to decide. Drives surface routing (which channel) and presentation (display name, avatar).",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Role name as defined in the Role Library, e.g. 'marketing', 'customer_support', 'finance'.",
+          "minLength": 1
+        },
+        "display_name": {
+          "type": "string",
+          "description": "Human-facing label for rendering, e.g. 'Marketing'. Defaults to a title-cased name if absent."
+        }
+      }
+    },
+    "channel": {
+      "type": "string",
+      "description": "Logical destination key the surface maps to a concrete channel — e.g. 'ads-report', 'customer-support', 'dev', 'finance'. Deliberately decoupled from any surface's native channel IDs: the runtime names an intent, the adapter owns the binding. Defaults to the role name if absent.",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "action": {
+      "type": "string",
+      "description": "The action being gated — the entry from the role's DecisionRights.must_escalate that triggered this request, e.g. 'final_approval_before_publish', 'refund_request', 'deal_close'. Tells the founder what they are authorising, not merely that something needs review.",
+      "minLength": 1
+    },
+    "escalation_reason": {
+      "type": "string",
+      "description": "Plain-language statement of why founder authority is required here, suitable for direct display. e.g. 'Marketing may draft and revise copy but must escalate before anything is published.'"
+    },
+    "artifact": {
+      "type": "object",
+      "description": "The payload under review. Kept as an object (not a bare string) so surfaces can render a summary plus full content, and so non-text artefacts (a proposed refund amount, a price) fit the same envelope.",
+      "required": ["content"],
+      "additionalProperties": false,
+      "properties": {
+        "content": {
+          "type": "string",
+          "description": "The full draft / proposal / payload text the founder reviews."
+        },
+        "content_type": {
+          "type": "string",
+          "description": "How to render the content.",
+          "enum": ["text/plain", "text/markdown", "application/json"],
+          "default": "text/markdown"
+        },
+        "summary": {
+          "type": "string",
+          "description": "One-line precis for notification surfaces (push notification body, channel preview) where the full content is too long.",
+          "maxLength": 280
+        }
+      }
+    },
+    "options": {
+      "type": "array",
+      "description": "The founder responses this gate accepts, in display order. Each maps to a FounderResponse.action value and gives the surface a label to render (a Discord button, an SMS keyword). Defaults to the canonical three (approve / reject / kill) if absent.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["action", "label"],
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "The decision token returned in FounderResponse.action.",
+            "enum": ["approve", "reject", "kill"]
+          },
+          "label": {
+            "type": "string",
+            "description": "Founder-facing button/keyword label, e.g. 'Approve & publish', 'Send back with notes', 'Kill run'.",
+            "minLength": 1
+          },
+          "requires_feedback": {
+            "type": "boolean",
+            "description": "If true, the surface must collect free-text feedback before submitting this response (e.g. open a modal on 'reject').",
+            "default": false
+          }
+        }
+      },
+      "default": [
+        { "action": "approve", "label": "Approve", "requires_feedback": false },
+        { "action": "reject", "label": "Send back", "requires_feedback": true },
+        { "action": "kill", "label": "Kill run", "requires_feedback": false }
+      ]
+    },
+    "context": {
+      "type": "object",
+      "description": "Optional supporting material the surface may show on demand (a 'details' expander). None of it is required to render the decision.",
+      "additionalProperties": false,
+      "properties": {
+        "prior_draft": {
+          "type": "string",
+          "description": "The previous draft, on revision turns — lets the surface show a diff or before/after."
+        },
+        "feedback_history": {
+          "type": "array",
+          "description": "Founder feedback given on earlier turns of this run, oldest first.",
+          "items": { "type": "string" }
+        },
+        "task_description": {
+          "type": "string",
+          "description": "The originating task, e.g. 'Draft a launch announcement for the Passly wallet pass'."
+        },
+        "links": {
+          "type": "array",
+          "description": "Relevant URLs (the trace, a preview, a dashboard).",
+          "items": { "type": "string", "format": "uri" }
+        },
+        "estimated_cost_eur": {
+          "type": "number",
+          "description": "Optional token/spend estimate for this run so far, for founder awareness.",
+          "minimum": 0
+        }
+      }
+    },
+    "urgency": {
+      "type": "string",
+      "description": "Routing/notification hint. 'blocking' means the run is parked until the founder responds (the default for an author-flow gate); 'fyi' is a notification with no parked run behind it.",
+      "enum": ["blocking", "fyi"],
+      "default": "blocking"
+    },
+    "created_at": {
+      "type": "string",
+      "description": "ISO 8601 timestamp the runtime stamped when raising the request. Used for SLA display and ordering.",
+      "format": "date-time"
+    }
+  },
+  "$defs": {
+    "FounderResponse": {
+      "title": "Founder Response",
+      "description": "The founder's reply to a HITLRequest, produced by whatever surface rendered it. Maps one-to-one onto the FounderDecision dataclass in src/solo_founder_crew/hitl.py, plus the request_id needed to resume the correct parked run. The runtime ignores request_id once correlated and constructs FounderDecision(action, feedback).",
+      "type": "object",
+      "required": ["request_id", "action"],
+      "additionalProperties": false,
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "description": "Echoes the HITLRequest.request_id this responds to.",
+          "minLength": 1
+        },
+        "action": {
+          "type": "string",
+          "description": "The founder's decision. Mirrors FounderDecision.action.",
+          "enum": ["approve", "reject", "kill"]
+        },
+        "feedback": {
+          "type": "string",
+          "description": "Free-text guidance. Present iff action == 'reject' (mirrors FounderDecision.feedback). The runtime feeds it to the revise step."
+        },
+        "responder": {
+          "type": "string",
+          "description": "Optional identity of who responded (the founder's handle on the surface). For audit; the single-founder unit of analysis makes this informational."
+        },
+        "responded_at": {
+          "type": "string",
+          "description": "ISO 8601 timestamp the response was submitted.",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}
