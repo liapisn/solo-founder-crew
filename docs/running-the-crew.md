@@ -30,13 +30,21 @@ Create a bot and invite it (Developer Portal → your app):
 - **Bot** tab → Reset Token → copy (this is `DISCORD_BOT_TOKEN`).
 - **OAuth2 → URL Generator** → scopes **`bot`** AND **`applications.commands`**
   (both — the second is required for slash commands to register) → bot
-  permissions: Send Messages, Embed Links → open the URL, add it to your server.
+  permissions: **Send Messages, Embed Links, Manage Channels** (the last lets
+  the daemon auto-create the role channels) → open the URL, add it to your
+  server.
 - No privileged intents needed (slash commands + buttons).
 
 ### 3. Config
 
-Copy `crew.toml.example` → `crew.toml` and fill the `[channels]` map with your
-channel IDs (Developer Mode → right-click channel → Copy Channel ID).
+**Channels are created for you.** On connect, the daemon ensures a channel
+per role exists (`#marketing`, `#product`, `#engineering`, …) under a
+"<venture> crew" category, creating any that are missing (needs the bot's
+Manage Channels permission). So `crew.toml` is **optional** — copy
+`crew.toml.example` → `crew.toml` only if you want to pin specific channels
+(an explicit `[channels]` mapping always wins over auto-create) or change the
+brief/model. To turn auto-create off, set `SFC_AUTO_CHANNELS=false` (then map
+channels yourself).
 
 Put secrets / infra in `.env` (gitignored):
 

@@ -55,6 +55,13 @@ async def test_posts_to_mapped_channel() -> None:
     await task
 
 
+def test_register_channel_and_is_mapped() -> None:
+    hitl = DiscordHITL(InMemoryTransport(), channel_map={})
+    assert hitl.is_mapped("marketing") is False
+    hitl.register_channel("marketing", "123")
+    assert hitl.is_mapped("marketing") is True
+
+
 async def test_unknown_channel_without_default_raises() -> None:
     hitl = DiscordHITL(InMemoryTransport(), channel_map={})
     with pytest.raises(UnknownChannel):

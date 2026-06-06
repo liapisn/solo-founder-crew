@@ -86,6 +86,19 @@ def publish_tool_for(role: Role) -> str:
     return role.tools[0] if role.tools else "publisher_tool"
 
 
+def channels_for(roles) -> list[str]:
+    """Logical channel names a crew needs — kebab-cased role names, de-duped,
+    in roster order. These are the channels the daemon ensures/creates."""
+    seen: set[str] = set()
+    out: list[str] = []
+    for r in roles:
+        logical = r.name.replace("_", "-")
+        if logical not in seen:
+            seen.add(logical)
+            out.append(logical)
+    return out
+
+
 def build_crew(
     config: RuntimeConfig,
     *,
@@ -148,6 +161,52 @@ async def open_checkpointer(url: str):
 
 
 # ─── Discord layer (lazy import) ────────────────────────────────────────────────
+
+
+async def ensure_channels(client, config: RuntimeConfig, crew, hitl) -> None:
+    """Make sure each role has a Discord channel, creating missing ones.
+
+    Logical channel names are the kebab-cased role names (#marketing,
+    #engineering, …). Explicit ``crew.toml`` bindings win and are never
+    overwritten. Auto-created channels go under a "<venture> crew" category.
+    Requires the bot's **Manage Channels** permission to create; if missing,
+    warns and falls back to whatever bindings exist.
+    """
+    import discord
+
+    guild = client.get_guild(config.guild_id)
+    if guild is None:
+        print(f"⚠ bot is not a member of guild {config.guild_id} — skipping channel setup.")
+        return
+
+    category = None
+    created: list[str] = []
+    for logical in channels_for(crew.roles):
+        if hitl.is_mapped(logical):
+            continue  # explicit crew.toml binding wins
+        existing = discord.utils.get(guild.text_channels, name=logical)
+        if existing is None and config.auto_create_channels:
+            try:
+                if category is None:
+                    cat_name = f"{crew.brief.name} crew"
+                    category = discord.utils.get(
+                        guild.categories, name=cat_name
+                    ) or await guild.create_category(cat_name)
+                existing = await guild.create_text_channel(logical, category=category)
+                created.append(logical)
+            except discord.Forbidden:
+                print(
+                    "⚠ missing 'Manage Channels' permission — can't auto-create\n"
+                    "  channels. Re-invite the bot with Manage Channels, or map\n"
+                    "  channels in crew.toml. See docs/running-the-crew.md."
+                )
+                return
+        if existing is not None:
+            hitl.register_channel(logical, str(existing.id))
+        elif not config.auto_create_channels:
+            print(f"⚠ no #{logical} channel and auto-create is off — map it in crew.toml.")
+    if created:
+        print(f"  created channels: {', '.join('#' + c for c in created)}")
 
 
 async def run(config: RuntimeConfig) -> None:
@@ -244,6 +303,7 @@ async def run(config: RuntimeConfig) -> None:
                     "  Generator), then restart. See docs/running-the-crew.md."
                 )
                 return
+            await ensure_channels(client, config, crew, hitl)
             print(
                 f"Crew online as {client.user} · venture={crew.brief.name} · "
                 f"roles={role_names} · {len(synced)} commands on guild "

@@ -59,6 +59,12 @@ def test_env_beats_toml(tmp_path) -> None:
     assert cfg.model == "real"
 
 
+def test_auto_create_channels_defaults_on_and_env_can_disable() -> None:
+    assert load_runtime_config({}, config_path="/none.toml").auto_create_channels is True
+    off = load_runtime_config({"SFC_AUTO_CHANNELS": "false"}, config_path="/none.toml")
+    assert off.auto_create_channels is False
+
+
 def test_require_discord_raises_when_missing() -> None:
     cfg = load_runtime_config({}, config_path="/nonexistent.toml")
     with pytest.raises(SystemExit, match="DISCORD_BOT_TOKEN"):

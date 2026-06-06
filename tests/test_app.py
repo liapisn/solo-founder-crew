@@ -11,11 +11,18 @@ from pathlib import Path
 
 import pytest
 
-from solo_founder_crew import FounderResponse, MockLLM, make_engineering, make_marketing
+from solo_founder_crew import (
+    FounderResponse,
+    MockLLM,
+    make_customer_support,
+    make_engineering,
+    make_marketing,
+)
 from solo_founder_crew.app import (
     PlaceholderLLM,
     build_crew,
     build_tools,
+    channels_for,
     open_checkpointer,
     publish_tool_for,
 )
@@ -53,6 +60,13 @@ def test_build_tools_registers_both_publish_tools() -> None:
 def test_publish_tool_for_picks_the_roles_tool(brief) -> None:
     assert publish_tool_for(make_marketing(brief)) == "publisher_tool"
     assert publish_tool_for(make_engineering(brief)) == "pr_tool"
+
+
+def test_channels_for_is_kebab_cased_and_deduped(brief) -> None:
+    chans = channels_for(
+        [make_marketing(brief), make_customer_support(brief), make_marketing(brief)]
+    )
+    assert chans == ["marketing", "customer-support"]  # snake→kebab, no dupes
 
 
 def test_placeholder_llm_is_deterministic_and_offline() -> None:

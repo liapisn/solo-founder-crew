@@ -148,6 +148,16 @@ class DiscordHITL:
         """Request ids currently awaiting a founder decision (for status)."""
         return tuple(rid for rid, f in self._pending.items() if not f.done())
 
+    # ── Channel bindings (set at startup, e.g. by auto-create) ───────────
+
+    def register_channel(self, logical: str, channel_id: str) -> None:
+        """Bind a logical channel name to a concrete Discord channel id."""
+        self._channel_map[logical] = channel_id
+
+    def is_mapped(self, logical: str) -> bool:
+        """True if ``logical`` already has an explicit channel binding."""
+        return logical in self._channel_map
+
     # ── internals ───────────────────────────────────────────────────────
 
     def _resolve_channel(self, logical: str | None) -> str:

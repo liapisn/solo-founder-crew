@@ -36,6 +36,7 @@ class RuntimeConfig:
     discord_token: str | None
     channel_map: dict[str, str] = field(default_factory=dict)
     default_channel_id: str | None = None
+    auto_create_channels: bool = True
 
     @property
     def use_real_llm(self) -> bool:
@@ -95,6 +96,12 @@ def load_runtime_config(
         env.get("SFC_DEFAULT_CHANNEL_ID") or crew.get("default_channel") or None
     )
 
+    auto_raw = env.get("SFC_AUTO_CHANNELS")
+    if auto_raw is not None:
+        auto_create = auto_raw.strip().lower() not in ("0", "false", "no", "off")
+    else:
+        auto_create = bool(crew.get("auto_channels", True))
+
     return RuntimeConfig(
         brief_path=Path(brief),
         model=model,
@@ -103,4 +110,5 @@ def load_runtime_config(
         discord_token=env.get("DISCORD_BOT_TOKEN"),
         channel_map=channels,
         default_channel_id=str(default_channel) if default_channel else None,
+        auto_create_channels=auto_create,
     )
