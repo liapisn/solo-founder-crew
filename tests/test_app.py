@@ -59,6 +59,22 @@ def test_build_tools_registers_both_publish_tools() -> None:
     assert "pr_tool" in tools._tools  # noqa: SLF001
 
 
+async def test_build_tools_uses_provided_publisher(brief) -> None:
+    seen = {}
+
+    async def pub(text: str) -> str:
+        seen["text"] = text
+        return "ok-published"
+
+    tools = build_tools(publisher=pub)
+    role = make_marketing(brief)  # holds publisher_tool, escalates publish
+    out = await tools.invoke(
+        role, "publisher_tool", "the approved copy", escalation_satisfied=True
+    )
+    assert out == "ok-published"
+    assert seen["text"] == "the approved copy"
+
+
 def test_publish_tool_for_picks_the_roles_tool(brief) -> None:
     assert publish_tool_for(make_marketing(brief)) == "publisher_tool"
     assert publish_tool_for(make_engineering(brief)) == "pr_tool"

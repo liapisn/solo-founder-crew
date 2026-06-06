@@ -74,12 +74,52 @@ async def _stub_tool(arg: str) -> str:
     return f"stub-published:{len(arg)}chars"
 
 
-def build_tools() -> ToolRegistry:
-    """Registry with stub publish tools (real integrations are M2)."""
+PUBLISH_CHANNEL = "published"  # logical channel approved artifacts go to
+
+
+def build_tools(*, publisher=None) -> ToolRegistry:
+    """Registry of publish tools.
+
+    ``publisher`` is the real ``async (text) -> str`` action for
+    ``publisher_tool`` (e.g. post to Discord); if omitted, a stub is used so
+    the daemon/tests run without side effects. ``pr_tool`` is still a stub
+    (real GitHub-PR integration is an M2 follow-up).
+    """
     tools = ToolRegistry()
-    tools.register("publisher_tool", _stub_tool, escalates="final_approval_before_publish")
+    tools.register(
+        "publisher_tool",
+        publisher or _stub_tool,
+        escalates="final_approval_before_publish",
+    )
     tools.register("pr_tool", _stub_tool, escalates="merge_to_main")
     return tools
+
+
+def make_discord_publisher(client, guild_id: int):
+    """A real ``publisher_tool``: post an approved artifact to #published.
+
+    M2's first real outbound action — when the founder taps Approve, the
+    Author Flow's publish step runs this, so the artifact actually appears in
+    Discord (vs the old stub). External channels (email, PR, sheets) are M2
+    follow-ups behind the same ToolRegistry seam.
+    """
+
+    async def publish(text: str) -> str:
+        import discord
+
+        guild = client.get_guild(guild_id)
+        channel = (
+            discord.utils.get(guild.text_channels, name=PUBLISH_CHANNEL)
+            if guild
+            else None
+        )
+        if channel is None:
+            return f"publish-skipped: no #{PUBLISH_CHANNEL} channel"
+        embed = discord.Embed(title="📣 Published", description=text[:4000])
+        msg = await channel.send(embed=embed)
+        return f"published to #{channel.name} (message {msg.id})"
+
+    return publish
 
 
 def publish_tool_for(role: Role) -> str:
@@ -136,16 +176,18 @@ def build_crew(
     transport,
     llm=None,
     checkpointer=None,
+    publisher=None,
 ) -> tuple[Crew, DiscordHITL]:
     """Assemble the venture's crew + the Discord HITL surface.
 
     ``transport`` is a ``DiscordTransport`` (live ``DiscordPyTransport`` in
-    production, ``InMemoryTransport`` in tests). ``llm`` / ``checkpointer``
-    are injectable for tests; production builds them from ``config``.
+    production, ``InMemoryTransport`` in tests). ``llm`` / ``checkpointer`` /
+    ``publisher`` are injectable for tests; production builds them from
+    ``config`` (publisher = post-to-Discord).
     """
     brief = VentureBrief.from_file(config.brief_path)
     roles = CrewGenerator(brief=brief).generate().roles
-    tools = build_tools()
+    tools = build_tools(publisher=publisher)
     if llm is None:
         llm = RealLLM() if config.use_real_llm else PlaceholderLLM()
     hitl = DiscordHITL(
@@ -221,7 +263,8 @@ async def ensure_channels(client, config: RuntimeConfig, crew, hitl) -> dict:
     category = None
     created: list[str] = []
     webhook_denied = False
-    for logical in channels_for(crew.roles):
+    # #published is where approved artifacts land (the publisher tool posts here).
+    for logical in [*channels_for(crew.roles), PUBLISH_CHANNEL]:
         # Resolve the channel: explicit binding → existing by name → create.
         channel = None
         if hitl.is_mapped(logical):
@@ -288,7 +331,10 @@ async def run(config: RuntimeConfig) -> None:
     transport = DiscordPyTransport(client)
 
     async with open_checkpointer(config.checkpointer_url) as checkpointer:
-        crew, hitl = build_crew(config, transport=transport, checkpointer=checkpointer)
+        publisher = make_discord_publisher(client, config.guild_id)
+        crew, hitl = build_crew(
+            config, transport=transport, checkpointer=checkpointer, publisher=publisher
+        )
         transport.bind(hitl.submit_response)
         runs: dict[str, dict] = {}  # thread_id -> {role, task, status}
         role_webhooks: dict = {}  # logical -> discord.Webhook (per-role identity)
