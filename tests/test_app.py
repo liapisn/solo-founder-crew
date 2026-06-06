@@ -152,6 +152,40 @@ async def test_build_crew_runs_author_flow_end_to_end() -> None:
     assert posted.role_name == "marketing"
 
 
+async def test_author_flow_with_async_sqlite_checkpointer(tmp_path) -> None:
+    """Run the full gate loop against a real AsyncSqliteSaver — the durable
+    path the daemon uses. Catches sync-vs-async checkpointer access bugs
+    (the previous _pending_interrupt used sync get_state, which blows up on
+    AsyncSqliteSaver)."""
+    pytest.importorskip("langgraph.checkpoint.sqlite.aio")
+    transport = InMemoryTransport()
+    async with open_checkpointer(f"sqlite:///{tmp_path}/state.db") as cp:
+        crew, hitl = build_crew(
+            _config(),
+            transport=transport,
+            llm=MockLLM(responses=["Launch copy."]),
+            checkpointer=cp,
+        )
+
+        async def tap_approve() -> None:
+            while not hitl.pending_request_ids():
+                await asyncio.sleep(0)
+            rid = hitl.pending_request_ids()[0]
+            hitl.submit_response(FounderResponse(request_id=rid, action="approve"))
+
+        marketing = crew.role("marketing")
+        result, _ = await asyncio.gather(
+            crew.author_flow(
+                task_description="Draft a launch announcement.",
+                role=marketing,
+                publish_tool=publish_tool_for(marketing),
+                thread_id="run-sqlite",
+            ),
+            tap_approve(),
+        )
+        assert result.status == "shipped"
+
+
 # ─── checkpointer ────────────────────────────────────────────────────────────
 
 

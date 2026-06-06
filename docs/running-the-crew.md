@@ -31,9 +31,10 @@ Create a bot and invite it (Developer Portal → your app):
 - **OAuth2 → URL Generator** → scopes **`bot`** AND **`applications.commands`**
   (both — the second is required for slash commands to register) → bot
   permissions: **Send Messages, Embed Links, Manage Channels, Manage
-  Webhooks** (Manage Channels lets the daemon auto-create the role channels;
-  Manage Webhooks lets each role post under its own name) → open the URL, add
-  it to your server.
+  Webhooks, Create Public Threads** (Manage Channels = auto-create role
+  channels; Manage Webhooks = per-role identity; Create Public Threads =
+  keep revision rounds in a thread) → open the URL, add it to your server.
+  (Granting **Administrator** covers all of these.)
 - No privileged intents needed (slash commands + buttons).
 
 ### 3. Config
@@ -89,10 +90,15 @@ tmux new -s crew '.venv/bin/python -m solo_founder_crew.app'
 ## Using it from Discord
 
 - **`/crew`** — the roster + each role's decision rights.
-- **`/draft role:marketing task:"launch announcement for the wallet pass"`** —
-  runs Author Flow; the draft appears in `#marketing` with buttons. Tap
-  **Approve** to publish (posts the artifact to **#published** — M2),
-  **Send back** to revise with notes, or **Kill run** to abort.
+- **`/draft role:marketing task:"…" [revisions:3]`** — runs Author Flow; the
+  draft appears in `#marketing` with buttons. Tap **Approve** to publish
+  (posts to **#published** — M2), **Send back** to revise with notes, or
+  **Kill run** to abort. `revisions` (default 3) is how many send-backs you
+  get before the run ends as **exhausted** (nothing published — just run
+  `/draft` again). The channel gets a closing line when a run ends
+  (✅ published / ⚠ exhausted / 🛑 killed). The first draft posts in the
+  channel (and @mentions you); **revision rounds go into a thread** off that
+  message, so the channel stays clean.
 - **`/ask role:product question:"what's our roadmap?"`** — advisory; the role
   replies in its own channel under its own name.
 - **`/status`** — in-flight runs and which ones await your tap.

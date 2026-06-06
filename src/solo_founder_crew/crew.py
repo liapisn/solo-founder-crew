@@ -151,7 +151,7 @@ class Crew:
         final: dict[str, Any] = {}
         while True:
             final = await graph.compiled.ainvoke(next_input, config=config)
-            interrupt_value = self._pending_interrupt(graph.compiled, config)
+            interrupt_value = await self._pending_interrupt(graph.compiled, config)
             if interrupt_value is None:
                 break
 
@@ -208,13 +208,20 @@ class Crew:
             )
 
     @staticmethod
-    def _pending_interrupt(compiled, config: dict[str, Any]) -> dict[str, Any] | None:
+    async def _pending_interrupt(
+        compiled, config: dict[str, Any]
+    ) -> dict[str, Any] | None:
         """Read interrupt payload from the checkpointer if the graph is paused.
 
         Returns the dict the ``hitl_node`` passed to ``interrupt(...)``,
         or ``None`` if the graph is in a terminal state.
+
+        Uses the **async** state API (``aget_state``): an async checkpointer
+        like ``AsyncSqliteSaver`` forbids synchronous access from the running
+        event loop, so the sync ``get_state`` only worked with ``MemorySaver``.
+        ``aget_state`` works for both.
         """
-        state = compiled.get_state(config)
+        state = await compiled.aget_state(config)
         if not state.tasks:
             return None
         for task in state.tasks:

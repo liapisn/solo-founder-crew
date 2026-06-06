@@ -55,6 +55,12 @@ async def test_posts_to_mapped_channel() -> None:
     await task
 
 
+def test_inmemory_transport_set_notify_stores() -> None:
+    t = InMemoryTransport()
+    t.set_notify("run-1", "<@42>")
+    assert t.notify["run-1"] == "<@42>"
+
+
 def test_register_channel_and_is_mapped() -> None:
     hitl = DiscordHITL(InMemoryTransport(), channel_map={})
     assert hitl.is_mapped("marketing") is False
