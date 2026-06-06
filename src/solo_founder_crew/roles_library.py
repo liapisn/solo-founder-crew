@@ -230,6 +230,57 @@ def make_finance(brief: VentureBrief) -> Role:
     )
 
 
+def make_engineering(brief: VentureBrief) -> Role:
+    """Drafts code changes and opens pull requests; surfaces technical risk.
+
+    The "dev" function of the crew. Universal for digital-only ventures —
+    they are software, so engineering is needed from pre-launch (building
+    the MVP) through growth (extending and maintaining it).
+
+    Decision-rights design (the point worth citing): the role *may open a
+    pull request on its own* (``open_pull_request`` is safe — it does not
+    touch ``main``), but **merging to main must escalate** to the founder.
+    That split is the framework's answer to "how does a dev agent ship
+    autonomously without the founder losing control of production": the
+    agent branches, opens a PR, and CI runs unattended; the founder's
+    approval is required only at the merge gate (rendered to the ``dev``
+    channel — see ``docs/dev-flow.md``).
+    """
+    return Role(
+        name="engineering",
+        goal="Draft small, reviewable code changes and open pull requests. Surface technical risk. Never merge to main without founder approval.",
+        system_prompt="\n\n".join(
+            [
+                _header(brief, "Engineering"),
+                _voice_block(brief),
+                _constraints_block(brief),
+                "DECISION RIGHTS\n"
+                "  - May: draft_content, revise_content, propose_change, open_pull_request\n"
+                "  - Must escalate: merge_to_main, dependency_change, schema_or_data_migration",
+                "OPERATING RULES\n"
+                "  - Branch and open a pull request; never push to main directly.\n"
+                "  - Keep changes small and reviewable; let CI run before requesting review.\n"
+                "  - Adding a dependency, or a schema / data migration, must be flagged and escalated.\n"
+                "  - State technical risk plainly; do not bury it.",
+            ]
+        ),
+        decision_rights=DecisionRights(
+            can=(
+                "draft_content",
+                "revise_content",
+                "propose_change",
+                "open_pull_request",
+            ),
+            must_escalate=(
+                "merge_to_main",
+                "dependency_change",
+                "schema_or_data_migration",
+            ),
+        ),
+        tools=("pr_tool",),
+    )
+
+
 # ─── Registry ────────────────────────────────────────────────────────────────
 
 
@@ -239,6 +290,7 @@ RoleFactory = Callable[[VentureBrief], Role]
 ROLE_LIBRARY: dict[str, RoleFactory] = {
     "marketing": make_marketing,
     "product": make_product,
+    "engineering": make_engineering,
     "customer_support": make_customer_support,
     "sales": make_sales,
     "finance": make_finance,

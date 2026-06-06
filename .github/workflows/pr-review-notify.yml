@@ -1,0 +1,91 @@
+name: PR review notify
+
+# When CI succeeds on a pull request, post the PR to Discord for the founder
+# to review (Ch.3 §3.8.6 / docs/dev-flow.md — the merge gate as a HITL gate).
+# Notify-only: the founder reviews/merges on GitHub via the link. No bot or
+# merge token here — that's the interactive variant, deliberately out of scope
+# for this step.
+#
+# Setup: create a Discord channel webhook (Channel → Edit → Integrations →
+# Webhooks → New Webhook → Copy URL) and add it as a repo secret named
+# DISCORD_WEBHOOK_URL (Settings → Secrets and variables → Actions). If the
+# secret is absent the job no-ops cleanly.
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  pull-requests: read
+  contents: read
+
+jobs:
+  notify:
+    # Only when CI passed AND it ran for a pull request.
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post passing PR to Discord
+        uses: actions/github-script@v7
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        with:
+          script: |
+            const webhook = process.env.DISCORD_WEBHOOK_URL;
+            if (!webhook) {
+              core.warning("DISCORD_WEBHOOK_URL secret not set — skipping notification.");
+              return;
+            }
+            const run = context.payload.workflow_run;
+
+            // PRs attached to the run; fall back to open PRs on the head branch.
+            let prs = run.pull_requests || [];
+            if (prs.length === 0) {
+              const { data } = await github.rest.pulls.list({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: "open",
+                head: `${context.repo.owner}:${run.head_branch}`,
+              });
+              prs = data;
+            }
+            if (prs.length === 0) {
+              core.info("CI passed but no open PR found for this run — nothing to notify.");
+              return;
+            }
+
+            for (const ref of prs) {
+              const { data: pr } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: ref.number,
+              });
+              const payload = {
+                username: "solo-founder-crew",
+                embeds: [{
+                  title: `PR #${pr.number}: ${pr.title}`.slice(0, 256),
+                  url: pr.html_url,
+                  description: "✅ CI passed — ready for your review.",
+                  color: 3066993,
+                  fields: [
+                    { name: "Author", value: pr.user.login, inline: true },
+                    { name: "Branch", value: `${pr.head.ref} → ${pr.base.ref}`.slice(0, 256), inline: true },
+                    { name: "Changes", value: `+${pr.additions} / −${pr.deletions} · ${pr.changed_files} files`, inline: true },
+                  ],
+                  footer: { text: `${context.repo.owner}/${context.repo.repo}` },
+                }],
+              };
+              const res = await fetch(webhook, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              });
+              if (!res.ok) {
+                core.setFailed(`Discord webhook returned ${res.status}: ${await res.text()}`);
+              } else {
+                core.info(`Notified Discord for PR #${pr.number}.`);
+              }
+            }

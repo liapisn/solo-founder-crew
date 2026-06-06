@@ -13,6 +13,7 @@ from solo_founder_crew import (
     Role,
     VentureBrief,
     make_customer_support,
+    make_engineering,
     make_finance,
     make_marketing,
     make_product,
@@ -23,10 +24,11 @@ from solo_founder_crew import (
 # ─── Role Library catalogue ──────────────────────────────────────────────────
 
 
-def test_role_library_has_five_factories() -> None:
+def test_role_library_has_six_factories() -> None:
     assert set(ROLE_LIBRARY) == {
         "marketing",
         "product",
+        "engineering",
         "customer_support",
         "sales",
         "finance",
@@ -38,6 +40,7 @@ def test_role_library_has_five_factories() -> None:
     [
         (make_marketing, "marketing", "final_approval_before_publish"),
         (make_product, "product", "spec_finalisation"),
+        (make_engineering, "engineering", "merge_to_main"),
         (make_customer_support, "customer_support", "refund_request"),
         (make_sales, "sales", "deal_close"),
         (make_finance, "finance", "payment_dispatch"),
@@ -82,8 +85,12 @@ def _brief_at_stage(brief: VentureBrief, stage: str) -> VentureBrief:
 def test_pre_launch_crew(brief: VentureBrief) -> None:
     """Default Passly brief is stage='pre-launch'."""
     result = CrewGenerator(brief=brief).generate()
-    assert result.role_names() == ("marketing", "product")
-    assert {d.role_name for d in result.fired()} == {"marketing", "product"}
+    assert result.role_names() == ("marketing", "product", "engineering")
+    assert {d.role_name for d in result.fired()} == {
+        "marketing",
+        "product",
+        "engineering",
+    }
     assert {d.role_name for d in result.skipped()} == {
         "customer_support",
         "sales",
@@ -96,6 +103,7 @@ def test_launched_crew(brief: VentureBrief) -> None:
     assert result.role_names() == (
         "marketing",
         "product",
+        "engineering",
         "customer_support",
         "sales",
     )
@@ -105,8 +113,10 @@ def test_launched_crew(brief: VentureBrief) -> None:
 def test_growth_crew(brief: VentureBrief) -> None:
     result = CrewGenerator(brief=_brief_at_stage(brief, "growth")).generate()
     # Product drops out at growth (dedicated hires assumed); finance enters.
+    # Engineering stays — a software venture always needs it.
     assert result.role_names() == (
         "marketing",
+        "engineering",
         "customer_support",
         "sales",
         "finance",
