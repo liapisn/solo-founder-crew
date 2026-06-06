@@ -335,7 +335,11 @@ async def run(config: RuntimeConfig) -> None:
                         thread_id=thread_id,
                     )
                     runs[thread_id]["status"] = result.status
-                except Exception as e:  # surface, don't crash the daemon
+                except Exception as e:  # don't crash the daemon, but be loud
+                    import traceback
+
+                    print(f"✗ /draft ({role}) failed for thread {thread_id}:")
+                    traceback.print_exc()
                     runs[thread_id]["status"] = f"error: {e}"
 
             asyncio.create_task(_go())
@@ -371,7 +375,11 @@ async def run(config: RuntimeConfig) -> None:
             async def _go() -> None:
                 try:
                     answer = await consult(crew.llm, chosen, crew.brief, question)
-                except Exception as e:  # surface, don't crash the daemon
+                except Exception as e:  # don't crash the daemon, but be loud
+                    import traceback
+
+                    print(f"✗ /ask ({role}) failed:")
+                    traceback.print_exc()
                     answer = f"(error: {e})"
                 display = role_display(logical)
                 embed = discord.Embed(title=f"{display} · reply", description=answer[:4000])
