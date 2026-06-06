@@ -50,6 +50,14 @@ discord = [
     "discord.py>=2.3,<3",
     "python-dotenv>=1.0,<2",
 ]
+# Optional: the always-on crew daemon (`python -m solo_founder_crew.app`).
+# Adds a durable SQLite checkpointer on top of the Discord surface.
+runtime = [
+    "discord.py>=2.3,<3",
+    "python-dotenv>=1.0,<2",
+    "langgraph-checkpoint-sqlite>=2.0,<3",
+    "aiosqlite>=0.20,<1",
+]
 
 [project.urls]
 Repository = "https://github.com/liapisn/solo-founder-crew"

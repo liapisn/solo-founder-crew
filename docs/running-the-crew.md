@@ -1,0 +1,93 @@
+# Running the crew (live, local)
+
+M1 of the "company in Discord" roadmap: run the crew as a long-lived local
+process. The agents are **online** — you start a flow from Discord with a
+slash command and approve / reject / kill it with buttons. Runs are **durable
+across restarts** (SQLite checkpointer).
+
+Built local-first; portable to a VM later by config alone (see the bottom).
+
+## What M1 does (and doesn't)
+
+- **Does:** crew online; `/draft` starts an Author Flow for a role; the draft
+  lands in that role's channel with Approve / Send back / Kill buttons; state
+  survives restarts.
+- **Doesn't (yet):** scheduled work (M3), inbound events (M4), new flow types
+  beyond Author Flow (M5), real publish tools (M2 — publishing is stubbed).
+
+## Setup
+
+### 1. Install the runtime extra
+
+```bash
+cd solo-founder-crew
+.venv/bin/pip install -e ".[runtime]"
+```
+
+### 2. Discord bot
+
+Create a bot and invite it (same as `docs/discord-setup.md`, steps 2–3):
+**bot** scope + Send Messages / Embed Links in the channels you'll use. No
+privileged intents needed (slash commands + buttons).
+
+### 3. Config
+
+Copy `crew.toml.example` → `crew.toml` and fill the `[channels]` map with your
+channel IDs (Developer Mode → right-click channel → Copy Channel ID).
+
+Put secrets / infra in `.env` (gitignored):
+
+```
+DISCORD_BOT_TOKEN=your-bot-token
+SFC_GUILD_ID=your-server-id
+# SFC_MODEL=real            # uncomment for live drafting (needs the next line)
+# ANTHROPIC_API_KEY=sk-ant-...
+```
+
+`model = "mock"` (the default) runs fully offline with a placeholder draft —
+enough to see the wiring and the founder gate. Set `SFC_MODEL=real` for actual
+Haiku drafting.
+
+### 4. Run
+
+```bash
+.venv/bin/python -m solo_founder_crew.app
+```
+
+You'll see `Crew online as <bot> · venture=Passly · roles=[…]`.
+
+### Keep it alive locally
+
+For the thesis, a terminal or `tmux` session is enough:
+
+```bash
+tmux new -s crew '.venv/bin/python -m solo_founder_crew.app'
+```
+
+(Optional polish: a `launchd` plist to survive reboot — not required for M1.)
+
+## Using it from Discord
+
+- **`/crew`** — the roster + each role's decision rights.
+- **`/draft role:marketing task:"launch announcement for the wallet pass"`** —
+  runs Author Flow; the draft appears in `#marketing` with buttons. Tap
+  **Approve** to publish (stubbed), **Send back** to revise with notes, or
+  **Kill run** to abort.
+- **`/status`** — in-flight runs and which ones await your tap.
+
+Note: the gate's displayed action label is currently the generic
+`final_approval_before_publish` even for the engineering role (whose true
+gate is `merge_to_main`) — the gate works correctly; only the label is
+generic. Per-role gate labels are a small runtime refinement, not M1.
+
+## Local → VM later (config, not code)
+
+| Concern | Local now | VM later |
+|---|---|---|
+| State | `SFC_CHECKPOINTER_URL=sqlite:///./data/state.db` | `SFC_CHECKPOINTER_URL=postgresql://…` (swap saver) |
+| Secrets | `.env` | same var names via the host's secret manager |
+| Process | `tmux` | `systemd` / Docker / Fly — same `python -m solo_founder_crew.app` |
+| Networking | outbound gateway (nothing to open) | identical |
+
+The daemon connects to Discord over an **outbound** WebSocket, so it works
+behind home NAT with no port-forwarding — and the exact same on a VM.
