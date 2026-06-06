@@ -194,50 +194,84 @@ async def open_checkpointer(url: str):
 # ─── Discord layer (lazy import) ────────────────────────────────────────────────
 
 
-async def ensure_channels(client, config: RuntimeConfig, crew, hitl) -> None:
-    """Make sure each role has a Discord channel, creating missing ones.
+def role_display(logical: str) -> str:
+    """Human-facing label for a logical channel / role (e.g. 'customer-support'
+    → 'Customer Support'). Used as the per-role webhook identity."""
+    return logical.replace("-", " ").title()
 
-    Logical channel names are the kebab-cased role names (#marketing,
-    #engineering, …). Explicit ``crew.toml`` bindings win and are never
-    overwritten. Auto-created channels go under a "<venture> crew" category.
-    Requires the bot's **Manage Channels** permission to create; if missing,
-    warns and falls back to whatever bindings exist.
+
+async def ensure_channels(client, config: RuntimeConfig, crew, hitl) -> dict:
+    """Ensure each role has a channel and a per-role webhook; return the
+    ``{logical -> discord.Webhook}`` map used to post under each role's identity.
+
+    Channels: kebab-cased role names (#marketing, …), created under a
+    "<venture> crew" category if missing (needs Manage Channels). Explicit
+    ``crew.toml`` bindings win. Webhooks: one per channel, named after the
+    role, so the role can post under its own name + avatar (needs Manage
+    Webhooks; if absent, role posts fall back to the bot identity).
     """
     import discord
 
+    webhooks: dict[str, discord.Webhook] = {}
     guild = client.get_guild(config.guild_id)
     if guild is None:
         print(f"⚠ bot is not a member of guild {config.guild_id} — skipping channel setup.")
-        return
+        return webhooks
 
     category = None
     created: list[str] = []
+    webhook_denied = False
     for logical in channels_for(crew.roles):
+        # Resolve the channel: explicit binding → existing by name → create.
+        channel = None
         if hitl.is_mapped(logical):
-            continue  # explicit crew.toml binding wins
-        existing = discord.utils.get(guild.text_channels, name=logical)
-        if existing is None and config.auto_create_channels:
+            cid = hitl.channel_for(logical)
+            channel = client.get_channel(int(cid)) if cid and cid.isdigit() else None
+        if channel is None:
+            channel = discord.utils.get(guild.text_channels, name=logical)
+        if channel is None and config.auto_create_channels:
             try:
                 if category is None:
                     cat_name = f"{crew.brief.name} crew"
                     category = discord.utils.get(
                         guild.categories, name=cat_name
                     ) or await guild.create_category(cat_name)
-                existing = await guild.create_text_channel(logical, category=category)
+                channel = await guild.create_text_channel(logical, category=category)
                 created.append(logical)
             except discord.Forbidden:
                 print(
                     "⚠ missing 'Manage Channels' permission — can't auto-create\n"
-                    "  channels. Re-invite the bot with Manage Channels, or map\n"
-                    "  channels in crew.toml. See docs/running-the-crew.md."
+                    "  channels. Re-invite with Manage Channels, or map channels\n"
+                    "  in crew.toml. See docs/running-the-crew.md."
                 )
-                return
-        if existing is not None:
-            hitl.register_channel(logical, str(existing.id))
-        elif not config.auto_create_channels:
-            print(f"⚠ no #{logical} channel and auto-create is off — map it in crew.toml.")
+                return webhooks
+        if channel is None:
+            if not config.auto_create_channels:
+                print(f"⚠ no #{logical} channel and auto-create is off — map it in crew.toml.")
+            continue
+
+        hitl.register_channel(logical, str(channel.id))
+
+        # Per-role webhook for distinct identity on role posts.
+        name = role_display(logical)
+        try:
+            hooks = await channel.webhooks()
+            hook = discord.utils.get(hooks, name=name)
+            if hook is None:
+                hook = await channel.create_webhook(name=name)
+            webhooks[logical] = hook
+        except discord.Forbidden:
+            webhook_denied = True
+
     if created:
         print(f"  created channels: {', '.join('#' + c for c in created)}")
+    if webhook_denied:
+        print(
+            "⚠ missing 'Manage Webhooks' permission — role posts will use the\n"
+            "  bot's identity instead of per-role names. Re-invite with Manage\n"
+            "  Webhooks for distinct teammate identities."
+        )
+    return webhooks
 
 
 async def run(config: RuntimeConfig) -> None:
@@ -257,6 +291,7 @@ async def run(config: RuntimeConfig) -> None:
         crew, hitl = build_crew(config, transport=transport, checkpointer=checkpointer)
         transport.bind(hitl.submit_response)
         runs: dict[str, dict] = {}  # thread_id -> {role, task, status}
+        role_webhooks: dict = {}  # logical -> discord.Webhook (per-role identity)
 
         role_names = [r.name for r in crew.roles]
 
@@ -338,15 +373,18 @@ async def run(config: RuntimeConfig) -> None:
                     answer = await consult(crew.llm, chosen, crew.brief, question)
                 except Exception as e:  # surface, don't crash the daemon
                     answer = f"(error: {e})"
-                channel = client.get_channel(int(cid)) or await client.fetch_channel(
-                    int(cid)
-                )
-                embed = discord.Embed(
-                    title=f"{chosen.name} · reply",
-                    description=answer[:4000],
-                )
+                display = role_display(logical)
+                embed = discord.Embed(title=f"{display} · reply", description=answer[:4000])
                 embed.add_field(name="You asked", value=question[:1024], inline=False)
-                await channel.send(embed=embed)
+                hook = role_webhooks.get(logical)
+                if hook is not None:
+                    # Post under the role's own name (per-role identity).
+                    await hook.send(embed=embed, username=display)
+                else:
+                    channel = client.get_channel(int(cid)) or await client.fetch_channel(
+                        int(cid)
+                    )
+                    await channel.send(embed=embed)
 
             asyncio.create_task(_go())
 
@@ -379,7 +417,7 @@ async def run(config: RuntimeConfig) -> None:
                     "  Generator), then restart. See docs/running-the-crew.md."
                 )
                 return
-            await ensure_channels(client, config, crew, hitl)
+            role_webhooks.update(await ensure_channels(client, config, crew, hitl))
             print(
                 f"Crew online as {client.user} · venture={crew.brief.name} · "
                 f"roles={role_names} · {len(synced)} commands on guild "

@@ -30,9 +30,10 @@ Create a bot and invite it (Developer Portal → your app):
 - **Bot** tab → Reset Token → copy (this is `DISCORD_BOT_TOKEN`).
 - **OAuth2 → URL Generator** → scopes **`bot`** AND **`applications.commands`**
   (both — the second is required for slash commands to register) → bot
-  permissions: **Send Messages, Embed Links, Manage Channels** (the last lets
-  the daemon auto-create the role channels) → open the URL, add it to your
-  server.
+  permissions: **Send Messages, Embed Links, Manage Channels, Manage
+  Webhooks** (Manage Channels lets the daemon auto-create the role channels;
+  Manage Webhooks lets each role post under its own name) → open the URL, add
+  it to your server.
 - No privileged intents needed (slash commands + buttons).
 
 ### 3. Config
@@ -45,6 +46,14 @@ Manage Channels permission). So `crew.toml` is **optional** — copy
 (an explicit `[channels]` mapping always wins over auto-create) or change the
 brief/model. To turn auto-create off, set `SFC_AUTO_CHANNELS=false` (then map
 channels yourself).
+
+**Each role posts under its own name.** The daemon also creates one webhook
+per role channel (needs Manage Webhooks), so role messages — e.g. the
+product role's `/ask` replies — appear from "Product", "Engineering", etc.,
+like distinct teammates, while still being one bot under the hood. The HITL
+approval gate (the draft + buttons) stays on the main bot, with the embed
+labelling the role. If Manage Webhooks is absent, role posts just use the
+bot's identity (still works).
 
 Put secrets / infra in `.env` (gitignored):
 

@@ -26,6 +26,7 @@ from solo_founder_crew.app import (
     consult_prompt,
     open_checkpointer,
     publish_tool_for,
+    role_display,
 )
 from solo_founder_crew.adapters.discord_hitl import InMemoryTransport
 from solo_founder_crew.config import RuntimeConfig
@@ -68,6 +69,11 @@ def test_channels_for_is_kebab_cased_and_deduped(brief) -> None:
         [make_marketing(brief), make_customer_support(brief), make_marketing(brief)]
     )
     assert chans == ["marketing", "customer-support"]  # snake→kebab, no dupes
+
+
+def test_role_display_titlecases_kebab() -> None:
+    assert role_display("customer-support") == "Customer Support"
+    assert role_display("engineering") == "Engineering"
 
 
 def test_consult_prompt_carries_brief_and_question() -> None:
