@@ -2,10 +2,13 @@
 
 Covers all four termination paths through the Author Flow graph:
 
-  1. approve immediately   -> status='shipped', 3 trace events
-  2. reject then approve   -> status='shipped', 5 trace events
-  3. kill at first gate    -> status='killed',  2 trace events
-  4. exhausted revisions   -> status='exhausted', 4 trace events
+  1. approve immediately   -> status='shipped',    3 trace events
+  2. reject then approve   -> status='shipped',    5 trace events
+  3. kill at first gate    -> status='killed',     3 trace events
+  4. exhausted revisions   -> status='exhausted',  5 trace events
+
+(Event counts are reproduced by examples/termination_paths.py and quoted
+in Ch.3 §3.9 Box 3.2.)
 
 Each test runs the framework through its public API (Crew + ScriptedHITL
 + MockLLM). No spike code, no LangGraph imports. If these pass, the
@@ -123,9 +126,9 @@ async def test_kill_at_first_gate(
     result = await crew.author_flow(task_description="Draft a launch announcement.")
     assert result.status == "killed"
     assert result.approved_artifact is None
-    # draft → hitl_review → run_killed (3 events) OR 2 depending on how
-    # run_killed is recorded — check below
+    # draft_content → hitl_review → run_killed (3 events)
     actions = [e.action for e in result.trace.events]
+    assert len(result.trace) == 3
     assert actions[0] == "draft_content"
     assert "hitl_review" in actions
     assert any("kill" in a for a in actions)
@@ -157,6 +160,7 @@ async def test_exhausted_revisions(
     actions = [e.action for e in result.trace.events]
     assert "revise_content" in actions
     assert any("exhausted" in a for a in actions)
+    assert len(result.trace) == 5
 
 
 # ─── thread_id property ──────────────────────────────────────────────────────
