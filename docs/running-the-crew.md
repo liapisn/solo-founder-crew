@@ -89,10 +89,13 @@ tmux new -s crew '.venv/bin/python -m solo_founder_crew.app'
 ## Using it from Discord
 
 - **`/crew`** — the roster + each role's decision rights.
-- **`/draft role:marketing task:"launch announcement for the wallet pass"`** —
-  runs Author Flow; the draft appears in `#marketing` with buttons. Tap
-  **Approve** to publish (posts the artifact to **#published** — M2),
-  **Send back** to revise with notes, or **Kill run** to abort.
+- **`/draft role:marketing task:"…" [revisions:3]`** — runs Author Flow; the
+  draft appears in `#marketing` with buttons. Tap **Approve** to publish
+  (posts to **#published** — M2), **Send back** to revise with notes, or
+  **Kill run** to abort. `revisions` (default 3) is how many send-backs you
+  get before the run ends as **exhausted** (nothing published — just run
+  `/draft` again). The channel gets a closing line when a run ends
+  (✅ published / ⚠ exhausted / 🛑 killed).
 - **`/ask role:product question:"what's our roadmap?"`** — advisory; the role
   replies in its own channel under its own name.
 - **`/status`** — in-flight runs and which ones await your tap.

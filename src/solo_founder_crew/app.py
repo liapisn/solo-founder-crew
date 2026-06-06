@@ -341,6 +341,25 @@ async def run(config: RuntimeConfig) -> None:
 
         role_names = [r.name for r in crew.roles]
 
+        async def _announce_outcome(logical: str, status: str, revisions: int) -> None:
+            """Post a closing line to the role's channel when a flow ends, so
+            the founder isn't left guessing (and the stale gate buttons aren't
+            the last word)."""
+            cid = hitl.channel_for(logical)
+            if cid is None:
+                return
+            text = {
+                "shipped": "✅ Approved & published to #published.",
+                "killed": "🛑 Run killed — nothing published.",
+                "exhausted": (
+                    f"⚠ Sent back {revisions} time(s) — revision budget used up, "
+                    f"nothing published. Run `/draft` again (raise `revisions:` for "
+                    f"more rounds)."
+                ),
+            }.get(status, f"Run ended: {status}.")
+            channel = client.get_channel(int(cid)) or await client.fetch_channel(int(cid))
+            await channel.send(text)
+
         @tree.command(
             name="crew",
             description="Show the current crew and each role's decision rights",
@@ -356,37 +375,47 @@ async def run(config: RuntimeConfig) -> None:
             await interaction.response.send_message("\n".join(lines), ephemeral=True)
 
         @tree.command(description="Start an Author Flow for a role; review lands in its channel")
-        @app_commands.describe(role="Which role drafts", task="What to draft")
-        async def draft(interaction, role: str, task: str):  # noqa: ANN001
+        @app_commands.describe(
+            role="Which role drafts",
+            task="What to draft",
+            revisions="How many times you can Send back before the run ends (default 3)",
+        )
+        async def draft(interaction, role: str, task: str, revisions: int = 3):  # noqa: ANN001
             if role not in role_names:
                 await interaction.response.send_message(
                     f"Unknown role {role!r}. Crew: {', '.join(role_names)}.",
                     ephemeral=True,
                 )
                 return
+            revisions = max(0, min(revisions, 10))
             thread_id = f"run-{interaction.id}"
             runs[thread_id] = {"role": role, "task": task, "status": "running"}
             await interaction.response.send_message(
-                f"▶ {role} is drafting — review will appear in the role's channel.",
+                f"▶ {role} is drafting — review will appear in the role's channel "
+                f"(up to {revisions} send-backs).",
                 ephemeral=True,
             )
 
             async def _go() -> None:
                 chosen = crew.role(role)
+                logical = role.replace("_", "-")
                 try:
                     result = await crew.author_flow(
                         task_description=task,
                         role=chosen,
                         publish_tool=publish_tool_for(chosen),
+                        max_revisions=revisions,
                         thread_id=thread_id,
                     )
                     runs[thread_id]["status"] = result.status
+                    await _announce_outcome(logical, result.status, revisions)
                 except Exception as e:  # don't crash the daemon, but be loud
                     import traceback
 
                     print(f"✗ /draft ({role}) failed for thread {thread_id}:")
                     traceback.print_exc()
                     runs[thread_id]["status"] = f"error: {e}"
+                    await _announce_outcome(logical, f"error: {e}", revisions)
 
             asyncio.create_task(_go())
 
