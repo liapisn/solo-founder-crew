@@ -390,6 +390,8 @@ async def run(config: RuntimeConfig) -> None:
             revisions = max(0, min(revisions, 10))
             thread_id = f"run-{interaction.id}"
             runs[thread_id] = {"role": role, "task": task, "status": "running"}
+            # Ping the founder on the review gate so it's easy to find/act on.
+            transport.set_notify(thread_id, interaction.user.mention)
             await interaction.response.send_message(
                 f"▶ {role} is drafting — review will appear in the role's channel "
                 f"(up to {revisions} send-backs).",
@@ -446,6 +448,7 @@ async def run(config: RuntimeConfig) -> None:
                 f"Asked **{role}** — reply posting in <#{cid}>.", ephemeral=True
             )
             chosen = crew.role(role)
+            mention = interaction.user.mention
 
             async def _go() -> None:
                 try:
@@ -459,15 +462,16 @@ async def run(config: RuntimeConfig) -> None:
                 display = role_display(logical)
                 embed = discord.Embed(title=f"{display} · reply", description=answer[:4000])
                 embed.add_field(name="You asked", value=question[:1024], inline=False)
+                # @mention the asker so they're pinged to read it.
                 hook = role_webhooks.get(logical)
                 if hook is not None:
                     # Post under the role's own name (per-role identity).
-                    await hook.send(embed=embed, username=display)
+                    await hook.send(content=mention, embed=embed, username=display)
                 else:
                     channel = client.get_channel(int(cid)) or await client.fetch_channel(
                         int(cid)
                     )
-                    await channel.send(embed=embed)
+                    await channel.send(content=mention, embed=embed)
 
             asyncio.create_task(_go())
 

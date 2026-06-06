@@ -58,10 +58,18 @@ class DiscordPyTransport:
         self._discord = discord
         self._client = client
         self._responder: Responder | None = None
+        # Per-run state, keyed by HITLRequest.thread_id:
+        self._threads: dict[str, "discord.Thread"] = {}  # revision threads
+        self._notify: dict[str, str] = {}  # who to @mention on the gate
 
     def bind(self, responder: Responder) -> None:
         """Supply the callback that resolves a parked gate (hitl.submit_response)."""
         self._responder = responder
+
+    def set_notify(self, thread_id: str, mention: str) -> None:
+        """Record who to @mention when this run's gate is posted (e.g. the
+        founder who started it). Keyed by the run's thread_id."""
+        self._notify[thread_id] = mention
 
     async def post_request(self, request: HITLRequest, *, channel_id: str) -> str:
         if self._responder is None:
@@ -74,7 +82,24 @@ class DiscordPyTransport:
             channel = await self._client.fetch_channel(int(channel_id))
         embed = self._build_embed(request)
         view = _DecisionView(self._discord, request, self._responder)
-        message = await channel.send(embed=embed, view=view)
+        mention = self._notify.get(request.thread_id)
+
+        # Turn 1 posts to the channel and opens a thread; revision turns
+        # (2+) post inside that thread so the channel doesn't fill with
+        # successive draft versions.
+        if request.turn <= 1:
+            message = await channel.send(content=mention, embed=embed, view=view)
+            try:
+                name = f"{request.role_display_name}: {request.artifact.summary or 'review'}"
+                self._threads[request.thread_id] = await message.create_thread(
+                    name=name[:90]
+                )
+            except (self._discord.Forbidden, self._discord.HTTPException):
+                pass  # no thread perms — revisions just stay in-channel
+            return str(message.id)
+
+        target = self._threads.get(request.thread_id) or channel
+        message = await target.send(content=mention, embed=embed, view=view)
         return str(message.id)
 
     # ── rendering ───────────────────────────────────────────────────────────

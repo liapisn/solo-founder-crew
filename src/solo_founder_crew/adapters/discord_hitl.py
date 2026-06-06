@@ -185,6 +185,10 @@ class InMemoryTransport:
 
     def __init__(self) -> None:
         self.posted: list[tuple[str, HITLRequest]] = []
+        self.notify: dict[str, str] = {}
+
+    def set_notify(self, thread_id: str, mention: str) -> None:
+        self.notify[thread_id] = mention
 
     async def post_request(self, request: HITLRequest, *, channel_id: str) -> str:
         self.posted.append((channel_id, request))
