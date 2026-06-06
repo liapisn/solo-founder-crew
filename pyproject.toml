@@ -43,6 +43,13 @@ dev = [
     "pytest-asyncio>=0.23",
     "ruff>=0.6",
 ]
+# Optional: the live Discord HITL surface (§3.8.6). Not needed for the
+# framework, the test suite, or the mock/stdin demos — install only to run
+# examples/passly_discord.py against a real Discord bot.
+discord = [
+    "discord.py>=2.3,<3",
+    "python-dotenv>=1.0,<2",
+]
 
 [project.urls]
 Repository = "https://github.com/liapisn/solo-founder-crew"
