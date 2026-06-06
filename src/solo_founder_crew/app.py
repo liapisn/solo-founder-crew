@@ -234,7 +234,19 @@ async def run(config: RuntimeConfig) -> None:
             print(f"Crew online as {client.user} · venture={crew.brief.name} · "
                   f"roles={role_names}")
 
-        await client.start(config.discord_token)
+        try:
+            await client.start(config.discord_token)
+        except discord.LoginFailure:
+            print(
+                "✗ Discord login failed — DISCORD_BOT_TOKEN is invalid.\n"
+                "  It must be the Bot token (Developer Portal → your app → Bot →\n"
+                "  Reset Token): ~70 chars with two dots. NOT the Application ID,\n"
+                "  Public Key, Client Secret, or a webhook URL. See "
+                "docs/running-the-crew.md."
+            )
+        finally:
+            if not client.is_closed():
+                await client.close()
 
 
 def main() -> None:
