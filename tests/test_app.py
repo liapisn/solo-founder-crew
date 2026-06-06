@@ -151,4 +151,9 @@ async def test_open_checkpointer_sqlite(tmp_path) -> None:
     db = tmp_path / "state.db"
     async with open_checkpointer(f"sqlite:///{db}") as cp:
         assert cp is not None
+        # Exercise the path that actually runs during a flow (aget_tuple →
+        # setup) — this is where a langgraph-checkpoint-sqlite / aiosqlite
+        # version mismatch (Connection.is_alive) blew up. Opening alone
+        # wasn't enough to catch it.
+        assert await cp.aget_tuple({"configurable": {"thread_id": "t"}}) is None
     assert db.exists()
