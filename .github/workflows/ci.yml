@@ -18,8 +18,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # requires-python is >=3.10,<3.14 (pyproject.toml).
-        python-version: ["3.10", "3.11", "3.12"]
+        # Matches requires-python (>=3.11,<3.14) and the project classifiers.
+        # 3.10 is excluded: langgraph 1.x raises "get_config outside of a
+        # runnable context" there — the framework targets 3.11+.
+        python-version: ["3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
 

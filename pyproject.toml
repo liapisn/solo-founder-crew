@@ -7,7 +7,7 @@ name = "solo-founder-crew"
 version = "0.1.0"
 description = "Multi-agent operating model for solo-founder digital startups (MBA διπλωματική, Liapis 2026)."
 readme = "README.md"
-requires-python = ">=3.10,<3.14"
+requires-python = ">=3.11,<3.14"
 license = { text = "Proprietary — academic work in progress" }
 authors = [
     { name = "Nikolaos Liapis", email = "nikos@dionapp.com" },
