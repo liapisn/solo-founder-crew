@@ -17,6 +17,7 @@ stage?". It's expressible as a table for Ch.3:
   |------------------|-----------------------------------------------|
   | marketing        | always                                        |
   | product          | stage in {pre-launch, launched}               |
+  | engineering      | always (digital ventures are software)        |
   | customer_support | stage in {launched, growth}                   |
   | sales            | stage in {launched, growth}                   |
   | finance          | stage == growth                               |
@@ -78,6 +79,11 @@ DEFAULT_RULES: tuple[CrewRule, ...] = (
         role_name="product",
         applies=lambda b: _stage(b) in ("pre-launch", "launched"),
         reason="Pre-launch and launched ventures still need spec and changelog drafting; growth-stage usually has dedicated product hires.",
+    ),
+    CrewRule(
+        role_name="engineering",
+        applies=lambda b: True,
+        reason="Digital-only ventures are software products; engineering is needed from pre-launch (building the MVP) through growth (extending and maintaining it).",
     ),
     CrewRule(
         role_name="customer_support",
