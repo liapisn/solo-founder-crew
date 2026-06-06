@@ -26,6 +26,20 @@ from solo_founder_crew import (
     VentureBrief,
     load_dotenv,
 )
+from solo_founder_crew.hitl_request import Artifact, HITLRequest
+
+
+def _req(content: str, turn: int) -> HITLRequest:
+    """Build a minimal HITLRequest for exercising a contract directly."""
+    return HITLRequest(
+        request_id=f"t{turn}",
+        thread_id="test",
+        venture_id="passly",
+        turn=turn,
+        role_name="marketing",
+        action="final_approval_before_publish",
+        artifact=Artifact(content=content),
+    )
 
 
 # ─── Role + DecisionRights ───────────────────────────────────────────────────
@@ -122,17 +136,17 @@ async def test_scripted_hitl_returns_in_turn_order() -> None:
             FounderDecision(action="approve"),
         ]
     )
-    d1 = await hitl.review("draft1", turn=1)
-    d2 = await hitl.review("draft2", turn=2)
+    d1 = await hitl.review(_req("draft1", 1))
+    d2 = await hitl.review(_req("draft2", 2))
     assert (d1.action, d1.feedback) == ("reject", "more colour")
     assert d2.action == "approve"
 
 
 async def test_scripted_hitl_raises_when_exhausted() -> None:
     hitl = ScriptedHITL([FounderDecision(action="approve")])
-    await hitl.review("draft", turn=1)
+    await hitl.review(_req("draft", 1))
     with pytest.raises(RuntimeError, match="exhausted"):
-        await hitl.review("draft", turn=2)
+        await hitl.review(_req("draft", 2))
 
 
 def test_scripted_hitl_from_file_roundtrips(tmp_path: Path) -> None:

@@ -24,7 +24,10 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
+
+if TYPE_CHECKING:
+    from solo_founder_crew.hitl_request import HITLRequest
 
 
 @dataclass(frozen=True)
@@ -42,12 +45,15 @@ class FounderDecision:
 class HITLContract(Protocol):
     """The single async method the runtime calls at each gate.
 
-    `artifact` is the draft / proposal / payload the founder is being
-    asked to review. `turn` is the 1-indexed gate turn (so a contract
-    can branch on first vs subsequent revisions).
+    `request` is a :class:`~solo_founder_crew.hitl_request.HITLRequest` —
+    the typed, transport-agnostic decision envelope (artifact under review,
+    asking role, logical channel, gated action, allowed options, and the
+    correlation/resume ids). An implementation renders it to whatever
+    surface it owns (stdin, a fixture, a Discord channel) and returns the
+    founder's :class:`FounderDecision`.
     """
 
-    async def review(self, artifact: str, *, turn: int) -> FounderDecision: ...
+    async def review(self, request: "HITLRequest") -> FounderDecision: ...
 
 
 class ScriptedHITL:
@@ -73,7 +79,8 @@ class ScriptedHITL:
             )
         return cls(decisions)
 
-    async def review(self, artifact: str, *, turn: int) -> FounderDecision:
+    async def review(self, request: "HITLRequest") -> FounderDecision:
+        turn = request.turn
         if turn not in self._by_turn:
             raise RuntimeError(
                 f"ScriptedHITL exhausted: no decision for turn {turn} "
@@ -90,17 +97,23 @@ class InteractiveHITL:
     implementation that satisfies the same ``HITLContract`` Protocol.
     """
 
-    async def review(self, artifact: str, *, turn: int) -> FounderDecision:
-        print(f"\n── FOUNDER GATE  turn {turn} ──")
-        print(artifact.rstrip())
-        print(f"── end of artifact ─────────────")
+    async def review(self, request: "HITLRequest") -> FounderDecision:
+        print(
+            f"\n── FOUNDER GATE  turn {request.turn} — "
+            f"{request.role_display_name} · #{request.channel} ──"
+        )
+        if request.escalation_reason:
+            print(request.escalation_reason)
+        print(request.artifact.content.rstrip())
+        print("── end of artifact ─────────────")
+        actions = [o.action for o in request.options]
         while True:
-            choice = input("Action [approve/reject/kill]: ").strip().lower()
-            if choice == "approve":
+            choice = input(f"Action [{'/'.join(actions)}]: ").strip().lower()
+            if choice == "approve" and "approve" in actions:
                 return FounderDecision(action="approve")
-            if choice == "kill":
+            if choice == "kill" and "kill" in actions:
                 return FounderDecision(action="kill")
-            if choice == "reject":
+            if choice == "reject" and "reject" in actions:
                 feedback = input("Feedback (one line, optional): ").strip()
                 return FounderDecision(action="reject", feedback=feedback or None)
-            print("invalid; expected one of: approve | reject | kill")
+            print(f"invalid; expected one of: {' | '.join(actions)}")

@@ -32,6 +32,7 @@ from langgraph.types import Command
 
 from solo_founder_crew.brief import VentureBrief
 from solo_founder_crew.hitl import HITLContract
+from solo_founder_crew.hitl_request import HITLRequest
 from solo_founder_crew.llm import LLMClient
 from solo_founder_crew.role import Role
 from solo_founder_crew.runtime import (
@@ -142,6 +143,7 @@ class Crew:
             "task_description": task_description,
             "max_revisions": max_revisions,
             "publish_tool": publish_tool,
+            "thread_id": thread_id,
             "turn": 0,
         }
 
@@ -153,14 +155,15 @@ class Crew:
             if interrupt_value is None:
                 break
 
-            # The graph is paused at the HITL gate.
-            artifact = interrupt_value["artifact"]
-            turn = interrupt_value["turn"]
-            decision = await self.hitl.review(artifact, turn=turn)
+            # The graph is paused at the HITL gate. Reconstruct the typed
+            # request from the checkpointed payload and hand it to the
+            # configured contract (stdin, fixture, Discord, …).
+            request = HITLRequest.from_interrupt_payload(interrupt_value)
+            decision = await self.hitl.review(request)
             self.trace.record(
                 role="founder",
                 action="hitl_review",
-                input=artifact,
+                input=request.artifact.content,
                 output=decision.feedback or "",
                 decision=decision.action,
             )

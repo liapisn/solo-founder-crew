@@ -42,8 +42,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 
-from solo_founder_crew.brief import VentureBrief
-from solo_founder_crew.hitl import FounderDecision, HITLContract
+from solo_founder_crew.hitl_request import Artifact, HITLRequest
 from solo_founder_crew.llm import LLMClient
 from solo_founder_crew.role import Role
 from solo_founder_crew.tools import ToolRegistry
@@ -74,6 +73,7 @@ class AuthorFlowState(TypedDict, total=False):
     task_description: str
     max_revisions: int
     publish_tool: str
+    thread_id: str
 
     # Mutates during the run
     draft: str
@@ -149,28 +149,48 @@ def _make_draft_node(
     return draft_node
 
 
-def _make_hitl_node():
+def _make_hitl_node(role: Role):
     """HITL gate as a LangGraph interrupt point.
 
-    The node calls ``interrupt(payload)``, which pauses the graph and
-    checkpoints state. The runner outside the graph
-    (``Crew.author_flow``) fetches a ``FounderDecision`` via the
-    configured ``HITLContract`` and resumes with ``Command(resume=…)``.
+    The node builds a :class:`HITLRequest` — the typed, transport-agnostic
+    decision envelope (Component 5) — and calls ``interrupt(payload)`` with
+    its serialised form, which pauses the graph and checkpoints state. The
+    runner outside the graph (``Crew.author_flow``) reconstructs the request,
+    fetches a ``FounderDecision`` via the configured ``HITLContract``, and
+    resumes with ``Command(resume=…)``.
+
+    The request is built from state, so it carries no live objects and stays
+    JSON-serialisable for the checkpoint. ``request_id`` is derived from
+    ``thread_id`` + ``turn`` so it is stable across the resume re-run (the
+    node body executes again from the top on resume).
 
     On resume, the node body runs *again* from the top — that's how
-    LangGraph delivers the resumed value. So the node MUST be
-    idempotent up to the ``interrupt()`` call. We keep it
-    side-effect-free: trace recording for the founder review happens
-    in the runner, not here.
+    LangGraph delivers the resumed value. So the node MUST be idempotent up
+    to the ``interrupt()`` call. We keep it side-effect-free: trace recording
+    for the founder review happens in the runner, not here.
     """
 
     async def hitl_node(state: AuthorFlowState) -> dict[str, Any]:
-        decision_payload = interrupt(
-            {
-                "artifact": state["draft"],
-                "turn": state["turn"],
-            }
+        brief = state["brief"]
+        thread_id = state.get("thread_id", "")
+        turn = state["turn"]
+        draft = state["draft"]
+        summary = " ".join(draft.split())[:160] or None
+        request = HITLRequest(
+            request_id=f"{thread_id}:t{turn}" if thread_id else f"t{turn}",
+            thread_id=thread_id,
+            venture_id=brief.get("venture_id", ""),
+            turn=turn,
+            role_name=role.name,
+            action=ESCALATION_ACTION,
+            escalation_reason=(
+                f"{role.name} may draft and revise, but must obtain founder "
+                f"approval before {state['publish_tool']} publishes this artefact."
+            ),
+            artifact=Artifact(content=draft, summary=summary),
+            context={"task_description": state.get("task_description", "")},
         )
+        decision_payload = interrupt(request.to_interrupt_payload())
         # decision_payload is the dict the runner passed to Command(resume=...)
         return {"decision": decision_payload}
 
@@ -310,7 +330,7 @@ def build_author_graph(
 
     g: StateGraph = StateGraph(AuthorFlowState)
     g.add_node("draft", _make_draft_node(llm, role, trace))
-    g.add_node("hitl", _make_hitl_node())
+    g.add_node("hitl", _make_hitl_node(role))
     g.add_node("revise", _make_revise_node(llm, role, trace))
     g.add_node("publish", _make_publish_node(tools, role, trace))
     g.add_node("kill", _make_kill_node(trace))

@@ -32,6 +32,13 @@ from solo_founder_crew.hitl import (
     InteractiveHITL,
     ScriptedHITL,
 )
+from solo_founder_crew.hitl_request import (
+    DEFAULT_OPTIONS,
+    Artifact,
+    FounderResponse,
+    HITLRequest,
+    ReviewOption,
+)
 from solo_founder_crew.llm import (
     LLMClient,
     LLMResponse,
@@ -103,6 +110,11 @@ __all__ = [
     "FounderDecision",
     "ScriptedHITL",
     "InteractiveHITL",
+    "HITLRequest",
+    "Artifact",
+    "ReviewOption",
+    "FounderResponse",
+    "DEFAULT_OPTIONS",
     # LLM substrate
     "LLMClient",
     "LLMResponse",
