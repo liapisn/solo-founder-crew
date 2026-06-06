@@ -29,3 +29,7 @@ secrets/
 
 # Example run artefacts
 examples/out/
+
+# Crew daemon local state + config
+data/
+crew.toml

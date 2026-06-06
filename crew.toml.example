@@ -1,0 +1,22 @@
+# Crew daemon config — OPTIONAL. Copy to crew.toml only if you want to override
+# defaults. Secrets go in .env, not here. Resolution: defaults < this file < env.
+
+[crew]
+brief = "scenarios/fixtures/passly_brief.json"
+model = "mock"                       # "mock" (offline placeholder) | "real" (Anthropic Haiku)
+checkpointer = "sqlite:///./data/state.db"   # or "memory"
+auto_channels = true                 # auto-create a channel per role on connect
+# guild_id = 123456789012345678      # usually set via SFC_GUILD_ID in .env instead
+
+# Channels are auto-created by default (a channel per role, under a
+# "<venture> crew" category). You only need this section to PIN specific
+# existing channels — an explicit mapping here always wins over auto-create.
+# Logical names are the kebab-cased role names. Enable Developer Mode in
+# Discord, right-click a channel → Copy Channel ID.
+# [channels]
+# marketing = "000000000000000000"
+# engineering = "000000000000000000"
+# customer-support = "000000000000000000"
+
+# Optional catch-all if a logical channel isn't mapped or created:
+# default_channel = "000000000000000000"

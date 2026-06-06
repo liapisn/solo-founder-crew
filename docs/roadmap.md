@@ -1,0 +1,95 @@
+# Roadmap — the crew as a company in Discord
+
+Tracking doc for turning the framework (a demonstrated artifact) into a
+*living company* the solo founder runs from Discord: channels per function,
+agents that act, the founder approving from their phone.
+
+**Scope note.** This is **product**, not the διπλωματική. The thesis
+contribution — the five-component framework, the HITL Contract as a
+substitutable seam, the operating-model demonstration — is already done and
+defensible (Ch.3). This roadmap is what the framework *enables*, built on top
+of it. Most of it is post-thesis; the most it should touch the thesis is
+enriching the Ch.4 Passly demonstration (still sandbox/synthetic).
+
+## The reusable spine (already built)
+
+- **Typed authority** — each `Role` has its own `DecisionRights` (`can` /
+  `must_escalate`) + tool allowlist. The safety model is core, not bolted on.
+- **HITL Contract + `HITLRequest` envelope** — transport-agnostic; routes by
+  logical `channel`.
+- **`DiscordHITL` + `DiscordPyTransport`** — the founder gate rendered to
+  Discord (buttons).
+- **Crew Generator, runtime (Author Flow), trace, checkpointer** — compose,
+  run, observe, pause/resume.
+- **Dev workflow** — CI (ruff+pytest) + CI→Discord PR notify + the
+  `engineering` role / Dev Flow.
+
+## Milestones
+
+| # | Milestone | What it adds | Status |
+|---|-----------|--------------|--------|
+| **M1** | Live crew daemon | Crew online as a local process; `/draft` `/ask` `/crew` `/status`; founder approves with buttons; durable across restarts; auto-created channels; per-role identity via webhooks | ✅ **built** (live-verify the `/draft` button gate to fully close) |
+| **M2** | Real outbound tools | Replace stub publish with real, escalation-gated actions: post-to-channel, send-email, open-PR, update-a-sheet. "Approve" actually *does* something | ⏳ next |
+| **M3** | Scheduled (proactive) work | Cron triggers: e.g. weekly ads report → #ads-report for review. First "it runs itself" moment | ⏳ |
+| **M4** | Event-driven work | Inbound events → flows: a customer message → support triage → draft reply with buttons | ⏳ |
+| **M5** | Flow library | Flows beyond Author Flow: triage (support), report (ads/finance), qualification (sales). `/ask` is an early taste (advisory/consult) | ⏳ (partial: `/ask`) |
+| **M6** | Memory + handoff | Per-role knowledge stores (each agent its own context); inter-agent handoff + arbitration | ⏳ |
+
+Dependency shape: **M1 is the spine.** M2 + M3 + M4 sit directly on it; M5
++ M6 are the deep end.
+
+## Milestone detail
+
+### M1 — Live crew daemon ✅
+`python -m solo_founder_crew.app`. Slash commands; `DiscordHITL` gate with
+Approve/Send back/Kill; SQLite checkpointer; channels auto-created under a
+"<venture> crew" category; one webhook per role channel for distinct
+identity. Local-first; portable to a VM by config alone. Docs:
+`docs/running-the-crew.md`. **Open:** live-verify `/draft` → button → publish
+(the suite proves the gate via `InMemoryTransport`; the Discord gateway
+round-trip is only checkable by running it).
+
+### M2 — Real outbound tools
+Behind `ToolRegistry`, real actions still gated by `DecisionRights`. Default
+new/expensive actions to `must_escalate`. This is what makes Approve real.
+
+### M3 — Scheduled work
+A scheduler (cron) fires flows proactively; results post to the role channel
+for async review. Cheap once M1 exists.
+
+### M4 — Event-driven work
+Inbound ingestion (email/webhook/Discord read — note: reading channel
+messages needs the Message Content privileged intent) → route to a flow.
+
+### M5 — Flow library
+Each function gets a flow shaped like its real job, sharing primitives.
+`/ask` (consult) already exists as the simplest one.
+
+### M6 — Memory + handoff
+Per-role memory namespace (read/write across runs) + agents passing work to
+each other and to the founder; the "arbitration/coordination" layer.
+
+## Decisions log
+
+- **Bot identity = per-role webhooks (Option A), not N separate bots.** One
+  token/process; roles post under their own name via channel webhooks. The
+  HITL approval gate stays on the main bot (embed labels the role). N real
+  bot apps was rejected for the 6× setup/connection cost. (M1.)
+- **Per-role "knowledge" deferred to M6** — it's a separate axis from
+  identity. Skillset is already per-role (decision rights + tools).
+- **PR review = notify-only.** CI-pass → Discord notification; founder
+  reviews/merges on GitHub. Interactive "Approve & merge from Discord" (a
+  serverless function or always-on bot) is specced but not built — needs a
+  host + a GitHub merge token.
+- **Local-first, VM-portable.** Outbound gateway (no inbound port);
+  `sqlite:///` now → `postgresql://` later; `.env`/`tmux` → secret-manager/
+  systemd later. Migration is config, not code.
+- **Branch protection deferred** — private repo needs GitHub Pro or going
+  public; running on soft convention (CI visible, ping-on-green) for now.
+
+## Cross-cutting
+
+- **Cost / autonomy guardrails:** proactive agents (M3/M4) make LLM calls +
+  take actions — needs budgets/rate limits. `must_escalate` is the safety net.
+- **Hosting:** local (Mac, `tmux`) for the thesis; VM later, no code change.
+- **Observability:** the `RunTrace` already logs every step.

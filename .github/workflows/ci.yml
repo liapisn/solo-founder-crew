@@ -32,12 +32,12 @@ jobs:
           cache: pip
           cache-dependency-path: pyproject.toml
 
-      - name: Install (dev + discord extras)
-        # The discord extra is installed so the importorskip-guarded
-        # DiscordPyTransport tests actually run in CI rather than skip.
+      - name: Install (dev + runtime extras)
+        # The runtime extra (discord.py + sqlite saver) is installed so the
+        # importorskip-guarded transport + daemon tests run in CI, not skip.
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev,discord]"
+          pip install -e ".[dev,runtime]"
 
       - name: Lint (ruff)
         run: ruff check src/ tests/ examples/
