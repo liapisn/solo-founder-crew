@@ -26,9 +26,12 @@ cd solo-founder-crew
 
 ### 2. Discord bot
 
-Create a bot and invite it (same as `docs/discord-setup.md`, steps 2–3):
-**bot** scope + Send Messages / Embed Links in the channels you'll use. No
-privileged intents needed (slash commands + buttons).
+Create a bot and invite it (Developer Portal → your app):
+- **Bot** tab → Reset Token → copy (this is `DISCORD_BOT_TOKEN`).
+- **OAuth2 → URL Generator** → scopes **`bot`** AND **`applications.commands`**
+  (both — the second is required for slash commands to register) → bot
+  permissions: Send Messages, Embed Links → open the URL, add it to your server.
+- No privileged intents needed (slash commands + buttons).
 
 ### 3. Config
 

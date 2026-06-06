@@ -230,10 +230,23 @@ async def run(config: RuntimeConfig) -> None:
 
         @client.event
         async def on_ready():  # noqa: ANN202
-            await tree.sync(guild=discord.Object(id=config.guild_id))
-            print(f"Crew online as {client.user} · venture={crew.brief.name} · "
-                  f"roles={role_names}")
+            try:
+                synced = await tree.sync(guild=discord.Object(id=config.guild_id))
+            except discord.Forbidden:
+                print(
+                    "⚠ Connected, but could NOT register slash commands — the bot\n"
+                    "  is missing the 'applications.commands' scope. Re-invite it\n"
+                    "  with BOTH 'bot' AND 'applications.commands' (OAuth2 → URL\n"
+                    "  Generator), then restart. See docs/running-the-crew.md."
+                )
+                return
+            print(
+                f"Crew online as {client.user} · venture={crew.brief.name} · "
+                f"roles={role_names} · {len(synced)} commands on guild "
+                f"{config.guild_id}"
+            )
 
+        print(f"Connecting to Discord (guild {config.guild_id})… Ctrl-C to stop.")
         try:
             await client.start(config.discord_token)
         except discord.LoginFailure:
