@@ -91,8 +91,10 @@ tmux new -s crew '.venv/bin/python -m solo_founder_crew.app'
 - **`/crew`** — the roster + each role's decision rights.
 - **`/draft role:marketing task:"launch announcement for the wallet pass"`** —
   runs Author Flow; the draft appears in `#marketing` with buttons. Tap
-  **Approve** to publish (stubbed), **Send back** to revise with notes, or
-  **Kill run** to abort.
+  **Approve** to publish (posts the artifact to **#published** — M2),
+  **Send back** to revise with notes, or **Kill run** to abort.
+- **`/ask role:product question:"what's our roadmap?"`** — advisory; the role
+  replies in its own channel under its own name.
 - **`/status`** — in-flight runs and which ones await your tap.
 
 Note: the gate's displayed action label is currently the generic

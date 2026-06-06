@@ -29,7 +29,7 @@ enriching the Ch.4 Passly demonstration (still sandbox/synthetic).
 | # | Milestone | What it adds | Status |
 |---|-----------|--------------|--------|
 | **M1** | Live crew daemon | Crew online as a local process; `/draft` `/ask` `/crew` `/status`; founder approves with buttons; durable across restarts; auto-created channels; per-role identity via webhooks | ✅ **built** (live-verify the `/draft` button gate to fully close) |
-| **M2** | Real outbound tools | Replace stub publish with real, escalation-gated actions: post-to-channel, send-email, open-PR, update-a-sheet. "Approve" actually *does* something | ⏳ next |
+| **M2** | Real outbound tools | Replace stub publish with real, escalation-gated actions. **Phase 1 done:** Approve posts the artifact to #published (Discord). **Next:** send-email, open-PR, update-a-sheet | 🔨 in progress |
 | **M3** | Scheduled (proactive) work | Cron triggers: e.g. weekly ads report → #ads-report for review. First "it runs itself" moment | ⏳ |
 | **M4** | Event-driven work | Inbound events → flows: a customer message → support triage → draft reply with buttons | ⏳ |
 | **M5** | Flow library | Flows beyond Author Flow: triage (support), report (ads/finance), qualification (sales). `/ask` is an early taste (advisory/consult) | ⏳ (partial: `/ask`) |
@@ -49,9 +49,15 @@ identity. Local-first; portable to a VM by config alone. Docs:
 (the suite proves the gate via `InMemoryTransport`; the Discord gateway
 round-trip is only checkable by running it).
 
-### M2 — Real outbound tools
+### M2 — Real outbound tools 🔨
 Behind `ToolRegistry`, real actions still gated by `DecisionRights`. Default
 new/expensive actions to `must_escalate`. This is what makes Approve real.
+- **Phase 1 (done):** `publisher_tool` posts the approved artifact to a
+  `#published` Discord channel (`make_discord_publisher` in `app.py`). No new
+  credentials. Approving a `/draft` now actually publishes.
+- **Next:** send-email (SMTP/Resend), open-PR (GitHub token — wires
+  `pr_tool` for the engineering role), update-a-sheet (Google Sheets). Each
+  is a new tool behind the same seam; each needs its own credential.
 
 ### M3 — Scheduled work
 A scheduler (cron) fires flows proactively; results post to the role channel
