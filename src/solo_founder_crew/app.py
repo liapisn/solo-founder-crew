@@ -230,8 +230,12 @@ async def run(config: RuntimeConfig) -> None:
 
         @client.event
         async def on_ready():  # noqa: ANN202
+            guild = discord.Object(id=config.guild_id)
             try:
-                synced = await tree.sync(guild=discord.Object(id=config.guild_id))
+                # Commands are registered globally; copy them into the guild so
+                # a guild-scoped sync picks them up and they appear instantly.
+                tree.copy_global_to(guild=guild)
+                synced = await tree.sync(guild=guild)
             except discord.Forbidden:
                 print(
                     "⚠ Connected, but could NOT register slash commands — the bot\n"
