@@ -29,9 +29,13 @@ Framework construction is phased:
 | 2 | LangGraph runtime + `Crew.author_flow()` API; Passly end-to-end via framework code (see [`examples/passly_launch.py`](examples/passly_launch.py)) | ✅ done |
 | 3 | Role Library (5 roles) + rule-driven Crew Generator with audit log (see [`examples/crew_generator_demo.py`](examples/crew_generator_demo.py)) | ✅ done |
 | 4 | Production HITL via LangGraph `interrupt()` + checkpointer; `InteractiveHITL` for stdin demos (see [`examples/passly_interactive.py`](examples/passly_interactive.py)) | ✅ done |
-| 5 | pytest suite (47 tests covering primitives, role library, all four author-flow termination paths) + thesis-side note | ✅ done |
+| 5 | pytest suite (covering primitives, role library, all four author-flow termination paths) + thesis-side note | ✅ done |
+| 6 | HITL surface layer: typed `HITLRequest` envelope ([`schemas/hitl_request.schema.json`](schemas/hitl_request.schema.json), [`hitl_request.py`](src/solo_founder_crew/hitl_request.py)); the runtime gate now emits a `HITLRequest` and `HITLContract.review` takes it; `DiscordHITL` surface adapter ([`adapters/discord_hitl.py`](src/solo_founder_crew/adapters/discord_hitl.py)) lets the founder approve/reject/kill from a chat channel. | ✅ done |
 
-**Framework construction phase closed.** Next thesis step: Chapter 3 prose drafting, citing this repo.
+**67 tests pass** (`.venv/bin/python -m pytest`). Phases 1–6 complete; the
+framework instantiates, runs end-to-end, and renders the founder gate to a
+remote surface. Companion thesis section: Ch.3 §3.7 (Orchestration Runtime)
+and §3.8 (HITL Contract, incl. the Discord surface).
 
 ## Quickstart
 
