@@ -158,6 +158,10 @@ class DiscordHITL:
         """True if ``logical`` already has an explicit channel binding."""
         return logical in self._channel_map
 
+    def channel_for(self, logical: str) -> str | None:
+        """Resolve a logical channel to a concrete id (falls back to default)."""
+        return self._channel_map.get(logical) or self._default_channel_id
+
     # ── internals ───────────────────────────────────────────────────────
 
     def _resolve_channel(self, logical: str | None) -> str:

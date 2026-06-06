@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -97,6 +98,36 @@ def channels_for(roles) -> list[str]:
             seen.add(logical)
             out.append(logical)
     return out
+
+
+def consult_prompt(brief_dict: dict, question: str) -> str:
+    """User prompt for an advisory 'consult' — the founder asking a role
+    (e.g. the product role as PM) about next moves / upcoming features.
+
+    Advisory, not Author Flow: the role answers as a counterpart, it does
+    not draft a publishable artifact and there is no founder gate.
+    """
+    return "\n".join(
+        [
+            "VENTURE BRIEF (context):",
+            json.dumps(brief_dict, ensure_ascii=False, indent=2),
+            "",
+            f"THE FOUNDER ASKS: {question}",
+            "",
+            "Reply as this role advising the founder. Be concise and concrete — "
+            "name next moves and upcoming features where relevant, and flag any "
+            "decision that would need the founder's sign-off. This is advice in "
+            "conversation, not publishable copy; do not produce a final artifact.",
+        ]
+    )
+
+
+async def consult(llm, role: Role, brief, question: str) -> str:
+    """Run a one-shot advisory turn for ``role`` and return its reply text."""
+    resp = await asyncio.to_thread(
+        llm.complete, role.system_prompt, consult_prompt(brief.as_dict(), question)
+    )
+    return resp.text
 
 
 def build_crew(
@@ -271,6 +302,51 @@ async def run(config: RuntimeConfig) -> None:
                     runs[thread_id]["status"] = result.status
                 except Exception as e:  # surface, don't crash the daemon
                     runs[thread_id]["status"] = f"error: {e}"
+
+            asyncio.create_task(_go())
+
+        @tree.command(
+            name="ask",
+            description="Ask a role for advice (default: product/PM); reply posts in its channel",
+        )
+        @app_commands.describe(
+            question="What to ask", role="Which role to ask (default: product)"
+        )
+        async def ask(interaction, question: str, role: str = "product"):  # noqa: ANN001
+            if role not in role_names:
+                await interaction.response.send_message(
+                    f"Unknown role {role!r}. Crew: {', '.join(role_names)}.",
+                    ephemeral=True,
+                )
+                return
+            logical = role.replace("_", "-")
+            cid = hitl.channel_for(logical)
+            if cid is None:
+                await interaction.response.send_message(
+                    f"No channel bound for {role}. Enable auto-create or map one "
+                    f"in crew.toml.",
+                    ephemeral=True,
+                )
+                return
+            await interaction.response.send_message(
+                f"Asked **{role}** — reply posting in <#{cid}>.", ephemeral=True
+            )
+            chosen = crew.role(role)
+
+            async def _go() -> None:
+                try:
+                    answer = await consult(crew.llm, chosen, crew.brief, question)
+                except Exception as e:  # surface, don't crash the daemon
+                    answer = f"(error: {e})"
+                channel = client.get_channel(int(cid)) or await client.fetch_channel(
+                    int(cid)
+                )
+                embed = discord.Embed(
+                    title=f"{chosen.name} · reply",
+                    description=answer[:4000],
+                )
+                embed.add_field(name="You asked", value=question[:1024], inline=False)
+                await channel.send(embed=embed)
 
             asyncio.create_task(_go())
 

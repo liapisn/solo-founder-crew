@@ -23,6 +23,7 @@ from solo_founder_crew.app import (
     build_crew,
     build_tools,
     channels_for,
+    consult_prompt,
     open_checkpointer,
     publish_tool_for,
 )
@@ -67,6 +68,13 @@ def test_channels_for_is_kebab_cased_and_deduped(brief) -> None:
         [make_marketing(brief), make_customer_support(brief), make_marketing(brief)]
     )
     assert chans == ["marketing", "customer-support"]  # snake→kebab, no dupes
+
+
+def test_consult_prompt_carries_brief_and_question() -> None:
+    p = consult_prompt({"name": "Passly"}, "what should we build next?")
+    assert "what should we build next?" in p
+    assert "Passly" in p
+    assert "advice" in p.lower() or "advis" in p.lower()
 
 
 def test_placeholder_llm_is_deterministic_and_offline() -> None:
