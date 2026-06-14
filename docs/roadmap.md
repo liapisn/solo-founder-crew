@@ -58,9 +58,19 @@ new/expensive actions to `must_escalate`. This is what makes Approve real.
 - **Phase 1 (done):** `publisher_tool` posts the approved artifact to a
   `#published` Discord channel (`make_discord_publisher` in `app.py`). No new
   credentials. Approving a `/draft` now actually publishes.
-- **Next:** send-email (SMTP/Resend), open-PR (GitHub token — wires
-  `pr_tool` for the engineering role), update-a-sheet (Google Sheets). Each
-  is a new tool behind the same seam; each needs its own credential.
+- **Phase 2 — open-PR (done):** `pr_tool` opens a **draft** PR on a
+  configured GitHub repository with the engineering role's approved
+  proposal as the PR body and a corresponding `docs/proposals/<slug>.md`
+  file. Lives in `src/solo_founder_crew/adapters/github_pr.py`;
+  Protocol-driven (`GitHubAPI`) with `RealGitHubAPI` (httpx + GITHUB_TOKEN)
+  and `FakeGitHubAPI` (in-memory for tests). End-to-end example at
+  `examples/engineering_pr.py` (mock by default; `--live` opens a real
+  draft PR). Drafts are never auto-mergeable; the founder promotes +
+  merges on GitHub. The existing `pr-review-notify` workflow posts the PR
+  to Discord when CI passes (Dev Flow's notify-only merge gate; see
+  `docs/dev-flow.md`).
+- **Next:** send-email (SMTP/Resend), update-a-sheet (Google Sheets).
+  Each is a new tool behind the same seam; each needs its own credential.
 
 ### M2.5 — Per-role model routing ✅
 
