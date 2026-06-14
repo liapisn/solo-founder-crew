@@ -82,7 +82,13 @@ def _header(brief: VentureBrief, role_name: str) -> str:
 def make_marketing(brief: VentureBrief) -> Role:
     """Customer-facing announcements, campaigns, channel-ready copy.
 
-    The most general-purpose role. Every venture gets one.
+    The most general-purpose role. Every venture gets one. Holds two
+    outbound tools — ``publisher_tool`` (default in the daemon's
+    ``/draft``, posts to Discord ``#published``) and ``email_tool``
+    (sends the approved artefact as a real email via Resend; see
+    ``adapters/email.py``). The Crew chooses which to invoke at
+    ``crew.author_flow(publish_tool=...)`` time; both gate on
+    ``final_approval_before_publish``.
     """
     return Role(
         name="marketing",
@@ -105,7 +111,7 @@ def make_marketing(brief: VentureBrief) -> Role:
             can=("draft_content", "revise_content"),
             must_escalate=("final_approval_before_publish",),
         ),
-        tools=("publisher_tool",),
+        tools=("publisher_tool", "email_tool"),
     )
 
 
