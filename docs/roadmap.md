@@ -86,16 +86,15 @@ a *fresh* HITL gate message in the role's channel; the button click
 on the new message routes back into the new process's Future and
 drives the run to terminal.
 
-**Known UX gap**: the old gate message's buttons are dead after
-restart — discord.py needs ``client.add_view`` re-registration to
-route them to the new process's handlers, and even if we did that
-there would be no in-process Future to resolve unless the resume
-task is also already running. The simpler shape — post a fresh
-gate — avoids both problems but leaves stale buttons visible. A
-future polish edits the stale message to say "🔄 Run resumed —
-see the latest gate above" using the saved ``message_id`` (not
-yet persisted). Click on a stale button currently shows Discord's
-generic "This interaction failed."
+**Stale-button cleanup (M1.6, ✅ landed):** the registry now
+persists the latest gate's ``(channel_id, message_id)`` via a
+``DiscordHITL.on_posted`` hook the daemon installs. On respawn,
+``_respawn_pending_runs`` edits the stale message to read
+"🔄 Run resumed — see the latest gate above" and strips its
+buttons before the resumed flow posts a fresh gate — so the
+founder cannot tap a dead button. The edit is best-effort
+(missing message / deleted channel / no perms is logged and
+swallowed; the resume continues either way).
 
 Tests:
 
