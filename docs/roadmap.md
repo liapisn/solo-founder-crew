@@ -28,7 +28,7 @@ enriching the Ch.4 Passly demonstration (still sandbox/synthetic).
 
 | # | Milestone | What it adds | Status |
 |---|-----------|--------------|--------|
-| **M1** | Live crew daemon | Crew online as a local process; `/draft` `/ask` `/crew` `/status`; founder approves with buttons; durable across restarts; auto-created channels; per-role identity via webhooks | ✅ **built** (live-verify the `/draft` button gate to fully close) |
+| **M1** | Live crew daemon | Crew online as a local process; `/draft` `/ask` `/crew` `/status`; founder approves with buttons; durable across restarts (M1.5 below); auto-created channels; per-role identity via webhooks | ✅ **built** — happy path verified live; restart-durability landed via `Crew.resume` + `RunsRegistry` (see M1.5 detail) |
 | **M2** | Real outbound tools | Replace stub publish with real, escalation-gated actions. **Phase 1 done:** Approve posts the artifact to #published (Discord). **Next:** send-email, open-PR, update-a-sheet | 🔨 in progress |
 | **M2.5** | Per-role model routing | `Crew.role_llms` map: each role can be backed by a different model (e.g. Marketing → Haiku, Engineering → Opus). Demonstrates `LLMClient` Protocol neutrality across tiers; sets up multi-vendor (OpenAI, Gemini) without further runtime changes. | ✅ **built** — Anthropic tier routing landed; OpenAI + Gemini adapters deferred until needed |
 | **M3** | Scheduled (proactive) work | Cron triggers: e.g. weekly ads report → #ads-report for review. First "it runs itself" moment | ⏳ |
@@ -51,6 +51,62 @@ identity. Local-first; portable to a VM by config alone. Docs:
 `docs/running-the-crew.md`. **Open:** live-verify `/draft` → button → publish
 (the suite proves the gate via `InMemoryTransport`; the Discord gateway
 round-trip is only checkable by running it).
+
+### M1.5 — Restart-durable Author Flow ✅
+
+A run paused at a HITL gate must survive a process restart and still
+complete when the founder eventually approves. The LangGraph
+checkpointer already preserved *graph state*; M1.5 adds the
+operational machinery to *bring that state back online* after a
+restart.
+
+Two pieces:
+
+- **`Crew.resume(thread_id, role)`** (in `src/solo_founder_crew/crew.py`):
+  re-enters the same interrupt-driving loop as ``author_flow``, but
+  starts from the existing checkpointed state instead of fresh
+  initial state. Shares the loop body via the new
+  ``Crew._drive_interrupt_loop`` helper. Raises ``KeyError`` if the
+  checkpointer has no state for the given ``thread_id``; returns the
+  saved terminal state idempotently if the run already shipped /
+  killed / exhausted.
+
+- **`RunsRegistry`** (`src/solo_founder_crew/runs_registry.py`): a
+  file-backed map (``data/runs.json``, atomic-rewrite on every
+  mutation) from ``thread_id`` to ``{role, task, revisions,
+  logical_channel, status}``. This is the operational metadata the
+  LangGraph checkpoint does not carry. The daemon writes it on every
+  ``/draft`` and on every status transition; reads it on startup to
+  discover which runs were in flight when the previous process died.
+
+The daemon's ``on_ready`` calls ``_respawn_pending_runs`` (in
+``app.py``) which, for each ``running`` record in the registry,
+spawns an ``asyncio.create_task(crew.resume(...))``. That task posts
+a *fresh* HITL gate message in the role's channel; the button click
+on the new message routes back into the new process's Future and
+drives the run to terminal.
+
+**Known UX gap**: the old gate message's buttons are dead after
+restart — discord.py needs ``client.add_view`` re-registration to
+route them to the new process's handlers, and even if we did that
+there would be no in-process Future to resolve unless the resume
+task is also already running. The simpler shape — post a fresh
+gate — avoids both problems but leaves stale buttons visible. A
+future polish edits the stale message to say "🔄 Run resumed —
+see the latest gate above" using the saved ``message_id`` (not
+yet persisted). Click on a stale button currently shows Discord's
+generic "This interaction failed."
+
+Tests:
+
+- ``tests/test_crew_resume.py`` (6 tests) — cancellation + resume
+  completes; multi-turn resume (reject → revise → approve);
+  idempotent on terminal state; ``KeyError`` on unknown thread;
+  ``RuntimeError`` without checkpointer; and an end-to-end
+  through ``DiscordHITL + InMemoryTransport`` that proves the exact
+  contract the daemon uses.
+- ``tests/test_runs_registry.py`` (15 tests) — schema, pending
+  filter, atomic write, robustness to malformed input.
 
 ### M2 — Real outbound tools 🔨
 Behind `ToolRegistry`, real actions still gated by `DecisionRights`. Default

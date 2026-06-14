@@ -36,6 +36,7 @@ from solo_founder_crew.hitl_request import HITLRequest
 from solo_founder_crew.llm import LLMClient
 from solo_founder_crew.role import Role
 from solo_founder_crew.runtime import (
+    AuthorFlowGraph,
     AuthorFlowState,
     DRAFT_ACTION,
     build_author_graph,
@@ -170,13 +171,133 @@ class Crew:
             "turn": 0,
         }
 
-        next_input: Any = initial
+        final = await self._drive_interrupt_loop(
+            graph=graph, config=config, initial_input=initial
+        )
+
+        return AuthorFlowResult(
+            status=final.get("status", "unknown"),
+            approved_artifact=final.get("approved_artifact"),
+            trace=self.trace,
+            thread_id=thread_id,
+            final_state=dict(final),
+        )
+
+    async def resume(
+        self,
+        thread_id: str,
+        *,
+        role: Role | str,
+        publish_tool: str = "publisher_tool",
+    ) -> AuthorFlowResult:
+        """Resume a paused Author Flow from existing checkpointer state.
+
+        Used by the daemon on startup to bring runs back online after a
+        process restart. Requires ``self.checkpointer`` to be set (an
+        ``AsyncSqliteSaver`` or any other persistent saver) and the named
+        ``thread_id`` to have state recorded in it.
+
+        Three outcomes:
+
+        - **Paused at a HITL gate** — the normal case. ``resume`` drives
+          the same interrupt loop as ``author_flow``, asking
+          ``self.hitl`` for each decision, until the graph reaches a
+          terminal node.
+        - **Already terminal** (status == "shipped" / "killed" /
+          "exhausted") — returns the saved terminal state without
+          calling the LLM, the HITL, or any tool. Safe to call
+          idempotently.
+        - **No state for ``thread_id``** — raises ``KeyError``. The
+          caller (typically the daemon's startup hook) is expected to
+          only call ``resume`` for thread ids it knows about from its
+          run registry.
+
+        Resuming uses the *same* graph the original run was paused
+        inside; LangGraph's checkpointer round-trips the state. The
+        only thing this method must reconstruct is the ``Crew``-level
+        services (``llm``, ``hitl``, ``tools``, ``trace``) — which the
+        caller supplied when constructing the new ``Crew`` instance.
+        """
+        if self.checkpointer is None:
+            raise RuntimeError(
+                "Crew.resume requires a checkpointer (got None). Construct the "
+                "Crew with checkpointer=AsyncSqliteSaver(...) or another "
+                "persistent saver."
+            )
+        chosen_role = self._resolve_role(role)
+        if not self.trace.scenario:
+            self.trace.scenario = f"author_flow::{self.brief.venture_id}"
+
+        graph = build_author_graph(
+            role=chosen_role,
+            llm=self._llm_for(chosen_role),
+            tools=self.tools,
+            trace=self.trace,
+            checkpointer=self.checkpointer,
+        )
+        config: dict[str, Any] = {"configurable": {"thread_id": thread_id}}
+
+        # Validate the thread has saved state. ``aget_state`` returns a
+        # snapshot whose ``values`` is empty for unknown ids.
+        snapshot = await graph.compiled.aget_state(config)
+        if not snapshot.values:
+            raise KeyError(
+                f"No saved state for thread_id {thread_id!r}; nothing to resume."
+            )
+
+        final = await self._drive_interrupt_loop(
+            graph=graph, config=config, initial_input=None
+        )
+        return AuthorFlowResult(
+            status=final.get("status", "unknown"),
+            approved_artifact=final.get("approved_artifact"),
+            trace=self.trace,
+            thread_id=thread_id,
+            final_state=dict(final),
+        )
+
+    # ─── Internals ──────────────────────────────────────────────────────────
+
+    async def _drive_interrupt_loop(
+        self,
+        *,
+        graph: AuthorFlowGraph,
+        config: dict[str, Any],
+        initial_input: Any,
+    ) -> dict[str, Any]:
+        """Shared body of ``author_flow`` and ``resume``.
+
+        ``initial_input`` is either:
+
+        - an ``AuthorFlowState`` dict — for a fresh ``author_flow`` run,
+          the very first ``ainvoke`` starts the graph.
+        - ``None`` — for ``resume``: the graph is already paused at an
+          interrupt, so we read the pending interrupt directly without
+          re-invoking the graph from scratch.
+
+        After that first decision, the loop is identical for both
+        callers: read the interrupt payload, ask the HITL contract,
+        ``ainvoke`` with the ``Command(resume=…)``, repeat until the
+        graph reports no pending interrupt (i.e. it has reached
+        publish/kill/exhausted).
+        """
+        next_input: Any = initial_input
         final: dict[str, Any] = {}
+        first_iteration = True
         while True:
-            final = await graph.compiled.ainvoke(next_input, config=config)
+            if first_iteration and next_input is None:
+                # Resume entry: the graph is already paused, so don't
+                # re-invoke from scratch. Drive directly from the
+                # existing checkpointed state.
+                snapshot = await graph.compiled.aget_state(config)
+                final = dict(snapshot.values)
+            else:
+                final = await graph.compiled.ainvoke(next_input, config=config)
+            first_iteration = False
+
             interrupt_value = await self._pending_interrupt(graph.compiled, config)
             if interrupt_value is None:
-                break
+                return final
 
             # The graph is paused at the HITL gate. Reconstruct the typed
             # request from the checkpointed payload and hand it to the
@@ -196,16 +317,6 @@ class Crew:
                     "feedback": decision.feedback,
                 }
             )
-
-        return AuthorFlowResult(
-            status=final.get("status", "unknown"),
-            approved_artifact=final.get("approved_artifact"),
-            trace=self.trace,
-            thread_id=thread_id,
-            final_state=dict(final),
-        )
-
-    # ─── Internals ──────────────────────────────────────────────────────────
 
     def _llm_for(self, role: Role) -> LLMClient:
         """Resolve the LLM to use for *role*.

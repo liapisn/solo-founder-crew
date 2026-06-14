@@ -41,6 +41,7 @@ from solo_founder_crew import (
 )
 from solo_founder_crew.adapters.discord_hitl import DiscordHITL
 from solo_founder_crew.config import RuntimeConfig, load_runtime_config
+from solo_founder_crew.runs_registry import RunRecord, RunsRegistry
 
 # ─── LLM for the daemon ────────────────────────────────────────────────────────
 
@@ -209,6 +210,97 @@ def build_crew(
 # ─── Checkpointer (durable across restarts) ─────────────────────────────────────
 
 
+async def _respawn_pending_runs(
+    *,
+    registry,
+    crew,
+    runs: dict,
+    announce,
+) -> None:
+    """On startup, re-spawn driver tasks for runs that were in flight
+    when the previous process died.
+
+    For each pending record in the registry:
+
+    1. Mirror the metadata into the in-memory ``runs`` dict so ``/status``
+       can show it immediately.
+    2. Spawn an ``asyncio`` task that calls ``crew.resume(thread_id,
+       role)``. That call re-builds the same graph, reads the paused
+       state from the checkpointer, and posts a *fresh* HITL gate
+       message — the old message's buttons are stale by design (this
+       process has no view registered for their custom_ids; clicking
+       them shows "interaction failed"). The fresh gate gets a new
+       Future, and the click on its button resolves it normally.
+    3. On terminal status (or ``KeyError`` if the checkpointer no
+       longer knows about the thread), update both the in-memory
+       dict and the persistent registry, then announce the outcome
+       in the role's channel.
+
+    The respawn is best-effort: a single bad record must not block
+    the daemon from coming online for the rest of the crew.
+    """
+    pending = registry.pending()
+    if not pending:
+        return
+    print(
+        f"↻ Re-spawning {len(pending)} pending run(s) from registry: "
+        + ", ".join(f"{r.thread_id}({r.role})" for r in pending)
+    )
+    for record in pending:
+        runs[record.thread_id] = {
+            "role": record.role,
+            "task": record.task,
+            "status": "running",
+        }
+
+        async def _resume(rec=record) -> None:
+            try:
+                chosen = crew.role(rec.role)
+                result = await crew.resume(
+                    thread_id=rec.thread_id,
+                    role=chosen,
+                    publish_tool=publish_tool_for(chosen),
+                )
+                runs[rec.thread_id]["status"] = result.status
+                registry.set_status(rec.thread_id, result.status)
+                await announce(rec.logical_channel, result.status, rec.revisions)
+            except KeyError:
+                # Checkpointer no longer has state for this thread —
+                # registry is stale. Drop the record so /status stops
+                # showing a phantom run.
+                print(
+                    f"↻ Dropping stale registry entry {rec.thread_id}: "
+                    f"no matching checkpoint state."
+                )
+                runs.pop(rec.thread_id, None)
+                registry.remove(rec.thread_id)
+            except Exception as e:  # don't crash the daemon
+                import traceback
+
+                print(f"✗ resume ({rec.role}) failed for thread {rec.thread_id}:")
+                traceback.print_exc()
+                runs[rec.thread_id]["status"] = f"error: {e}"
+                registry.set_status(rec.thread_id, f"error: {e}")
+                await announce(rec.logical_channel, f"error: {e}", rec.revisions)
+
+        asyncio.create_task(_resume())
+
+
+def _registry_path(checkpointer_url: str) -> Path:
+    """Where the operational runs registry lives.
+
+    Co-locates ``runs.json`` with the SQLite checkpointer database so a
+    single ``data/`` directory holds all persistent daemon state. For
+    in-memory checkpointers the path is still ``./data/runs.json`` —
+    harmless if unused; convenient if the user later switches to a
+    durable checkpointer.
+    """
+    if checkpointer_url.startswith("sqlite:///"):
+        db_path = Path(checkpointer_url[len("sqlite:///"):])
+        return db_path.parent / "runs.json"
+    return Path("./data/runs.json")
+
+
 @contextlib.asynccontextmanager
 async def open_checkpointer(url: str):
     """Yield a checkpointer for the daemon's lifetime.
@@ -338,6 +430,10 @@ async def run(config: RuntimeConfig) -> None:
         transport.bind(hitl.submit_response)
         runs: dict[str, dict] = {}  # thread_id -> {role, task, status}
         role_webhooks: dict = {}  # logical -> discord.Webhook (per-role identity)
+        # Operational metadata for restart-durability. Lives next to the
+        # checkpointer's SQLite DB so a single ``data/`` directory holds
+        # all persistent state for the daemon. See runs_registry.py.
+        registry = RunsRegistry(_registry_path(config.checkpointer_url))
 
         role_names = [r.name for r in crew.roles]
 
@@ -389,7 +485,18 @@ async def run(config: RuntimeConfig) -> None:
                 return
             revisions = max(0, min(revisions, 10))
             thread_id = f"run-{interaction.id}"
+            logical = role.replace("_", "-")
             runs[thread_id] = {"role": role, "task": task, "status": "running"}
+            registry.put(
+                RunRecord(
+                    thread_id=thread_id,
+                    role=role,
+                    task=task,
+                    revisions=revisions,
+                    logical_channel=logical,
+                    status="running",
+                )
+            )
             # Ping the founder on the review gate so it's easy to find/act on.
             transport.set_notify(thread_id, interaction.user.mention)
             await interaction.response.send_message(
@@ -400,7 +507,6 @@ async def run(config: RuntimeConfig) -> None:
 
             async def _go() -> None:
                 chosen = crew.role(role)
-                logical = role.replace("_", "-")
                 try:
                     result = await crew.author_flow(
                         task_description=task,
@@ -410,6 +516,7 @@ async def run(config: RuntimeConfig) -> None:
                         thread_id=thread_id,
                     )
                     runs[thread_id]["status"] = result.status
+                    registry.set_status(thread_id, result.status)
                     await _announce_outcome(logical, result.status, revisions)
                 except Exception as e:  # don't crash the daemon, but be loud
                     import traceback
@@ -417,6 +524,7 @@ async def run(config: RuntimeConfig) -> None:
                     print(f"✗ /draft ({role}) failed for thread {thread_id}:")
                     traceback.print_exc()
                     runs[thread_id]["status"] = f"error: {e}"
+                    registry.set_status(thread_id, f"error: {e}")
                     await _announce_outcome(logical, f"error: {e}", revisions)
 
             asyncio.create_task(_go())
@@ -509,6 +617,18 @@ async def run(config: RuntimeConfig) -> None:
                 f"Crew online as {client.user} · venture={crew.brief.name} · "
                 f"roles={role_names} · {len(synced)} commands on guild "
                 f"{config.guild_id}"
+            )
+            # Restart-durability: re-spawn drivers for runs that were
+            # still in flight when the previous process died. Each
+            # resume task posts a fresh HITL gate in the role's
+            # channel (the old message's buttons are stale and will
+            # show "interaction failed" if clicked — that's a known
+            # gap; see M1.5 follow-up note in docs/roadmap.md).
+            await _respawn_pending_runs(
+                registry=registry,
+                crew=crew,
+                runs=runs,
+                announce=_announce_outcome,
             )
 
         print(f"Connecting to Discord (guild {config.guild_id})… Ctrl-C to stop.")
