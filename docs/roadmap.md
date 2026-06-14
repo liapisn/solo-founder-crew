@@ -21,15 +21,25 @@ enriching the Ch.4 Passly demonstration (still sandbox/synthetic).
   Discord (buttons).
 - **Crew Generator, runtime (Author Flow), trace, checkpointer** — compose,
   run, observe, pause/resume.
-- **Dev workflow** — CI (ruff+pytest) + CI→Discord PR notify + the
-  `engineering` role / Dev Flow.
+- **Restart-durable Author Flow** — `Crew.resume(thread_id)` + the daemon's
+  `RunsRegistry` bring in-flight runs back online after a process restart;
+  stale gate messages are edited so the founder can't tap a dead button.
+- **Real outbound tools** behind the same `ToolRegistry` seam: Discord
+  publish (`publisher_tool`), GitHub draft PR (`pr_tool`, engineering),
+  and email (`email_tool`, marketing — Resend by default with a
+  pluggable provider registry for SMTP / SendGrid / etc.).
+- **Per-role model routing** — `Crew.role_llms` map; Marketing on Haiku,
+  Engineering on Opus, any future role on any LLM via the substrate-
+  neutral `LLMClient` Protocol.
+- **Dev workflow** — CI (ruff+pytest) on push + PR; CI→Discord PR notify
+  via channel webhook; the `engineering` role / Dev Flow.
 
 ## Milestones
 
 | # | Milestone | What it adds | Status |
 |---|-----------|--------------|--------|
-| **M1** | Live crew daemon | Crew online as a local process; `/draft` `/ask` `/crew` `/status`; founder approves with buttons; durable across restarts (M1.5 below); auto-created channels; per-role identity via webhooks | ✅ **built** — happy path verified live; restart-durability landed via `Crew.resume` + `RunsRegistry` (see M1.5 detail) |
-| **M2** | Real outbound tools | Replace stub publish with real, escalation-gated actions. **Phase 1 done:** Approve posts the artifact to #published (Discord). **Next:** send-email, open-PR, update-a-sheet | 🔨 in progress |
+| **M1** | Live crew daemon | Crew online as a local process; `/draft` `/ask` `/crew` `/status`; founder approves with buttons; durable across restarts (M1.5+M1.6 below); auto-created channels; per-role identity via webhooks | ✅ **closed** — happy path + restart-durability + stale-gate cleanup all verified live |
+| **M2** | Real outbound tools | Replace stub publish with real, escalation-gated actions. **Done:** Phase 1 Discord publish; Phase 2 `pr_tool` (engineering → GitHub draft PR); Phase 2 `email_tool` (marketing → Resend, pluggable provider registry). **Deferred:** `update-a-sheet` (Google Sheets) — heavier API ceremony, defer until a concrete Finance flow needs it. | ✅ **built** (deferred sub-item noted) |
 | **M2.5** | Per-role model routing | `Crew.role_llms` map: each role can be backed by a different model (e.g. Marketing → Haiku, Engineering → Opus). Demonstrates `LLMClient` Protocol neutrality across tiers; sets up multi-vendor (OpenAI, Gemini) without further runtime changes. | ✅ **built** — Anthropic tier routing landed; OpenAI + Gemini adapters deferred until needed |
 | **M3** | Scheduled (proactive) work | Cron triggers: e.g. weekly ads report → #ads-report for review. First "it runs itself" moment | ⏳ |
 | **M4** | Event-driven work | Inbound events → flows: a customer message → support triage → draft reply with buttons | ⏳ |
@@ -48,9 +58,10 @@ model without further framework changes.
 Approve/Send back/Kill; SQLite checkpointer; channels auto-created under a
 "<venture> crew" category; one webhook per role channel for distinct
 identity. Local-first; portable to a VM by config alone. Docs:
-`docs/running-the-crew.md`. **Open:** live-verify `/draft` → button → publish
-(the suite proves the gate via `InMemoryTransport`; the Discord gateway
-round-trip is only checkable by running it).
+`docs/running-the-crew.md`. Happy path + restart-durability +
+stale-gate cleanup all verified live on real Discord; on_ready emits
+phase logs (registry path, command sync, channel ensure, respawn
+count) so any future startup issue is visible in stdout.
 
 ### M1.5 — Restart-durable Author Flow ✅
 
