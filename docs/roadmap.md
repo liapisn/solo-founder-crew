@@ -124,8 +124,20 @@ new/expensive actions to `must_escalate`. This is what makes Approve real.
   merges on GitHub. The existing `pr-review-notify` workflow posts the PR
   to Discord when CI passes (Dev Flow's notify-only merge gate; see
   `docs/dev-flow.md`).
-- **Next:** send-email (SMTP/Resend), update-a-sheet (Google Sheets).
-  Each is a new tool behind the same seam; each needs its own credential.
+- **Phase 2 — send-email (done):** `email_tool` sends the marketing
+  role's approved artefact as a real email via Resend. Lives in
+  `src/solo_founder_crew/adapters/email.py`; same Protocol-with-fake
+  shape as the PR tool (`EmailAPI` + `ResendEmailAPI` + `FakeEmailAPI`).
+  The Marketing role now holds both `publisher_tool` and `email_tool`
+  in its allowlist; `crew.author_flow(publish_tool="email_tool")`
+  selects the email path. Subject is derived from the artefact's
+  first line; body is rendered as both plain text and HTML. End-to-end
+  example at `examples/marketing_email.py` (mock by default; `--live`
+  sends through Resend). Sandbox sender `onboarding@resend.dev`
+  needs no domain verification — perfect for the thesis demo.
+- **Next:** update-a-sheet (Google Sheets) — the niche-but-useful
+  finance/sales surface. Heavier API ceremony (service-account JSON)
+  than Resend; defer until a concrete Finance flow needs it.
 
 ### M2.5 — Per-role model routing ✅
 
