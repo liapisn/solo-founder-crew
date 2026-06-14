@@ -4,8 +4,12 @@ A second real outbound tool alongside ``github_pr.GitHubPRTool``. The
 shape mirrors the framework's recurring Protocol-with-fake pattern:
 
 - ``EmailAPI``: a Protocol — the narrow surface ``EmailTool`` needs.
-- ``ResendEmailAPI``: production implementation, lazy-imports
-  ``httpx`` and posts to Resend's REST API. Validates
+  **Pluggable**: any object implementing ``send_email(...) -> str``
+  works. Resend ships as the default; the project registers more
+  providers (SMTP, SendGrid, Mailgun, …) via
+  ``register_email_provider`` without touching the tool itself.
+- ``ResendEmailAPI``: default production implementation,
+  lazy-imports ``httpx`` and posts to Resend's REST API. Validates
   ``RESEND_API_KEY`` at construction.
 - ``FakeEmailAPI``: in-memory test double. Records every "sent" email
   so tests can assert without touching the network.
@@ -14,16 +18,41 @@ shape mirrors the framework's recurring Protocol-with-fake pattern:
   approved artefact text as input; derives subject from the first
   line; renders both plain-text and HTML bodies; calls the API; returns
   a short status string ("sent:<id>:<recipient>").
-- ``make_email_tool``: factory mirroring ``make_github_pr_tool``,
-  reading ``SFC_EMAIL_FROM`` / ``SFC_EMAIL_TO`` from the environment.
+- ``make_email_tool``: factory mirroring ``make_github_pr_tool``.
+  Reads ``SFC_EMAIL_FROM``, ``SFC_EMAIL_TO``,
+  ``SFC_EMAIL_SUBJECT_PREFIX``, and **``SFC_EMAIL_PROVIDER``**
+  (default ``"resend"``). The provider name dispatches through the
+  module-level provider registry.
+
+Adding a new provider (e.g. SendGrid)::
+
+    from solo_founder_crew.adapters.email import (
+        EmailAPI, register_email_provider,
+    )
+
+    class SendGridEmailAPI:
+        def __init__(self): ...
+        def send_email(self, *, from_addr, to, subject, html, text) -> str:
+            ...
+
+    register_email_provider("sendgrid", SendGridEmailAPI)
+
+After that, ``SFC_EMAIL_PROVIDER=sendgrid`` (or
+``make_email_tool(provider="sendgrid")``) routes through it. The
+``EmailTool`` itself does not change; the framework's substitution
+seam absorbs the swap.
 
 Design choices worth citing in Ch.3 §3.5/§3.7 prose:
 
-- **Resend over SMTP** — modern REST API, no SMTP authentication
-  ceremony, free tier (3K/month) covers academic-grade demonstration
-  with margin. Sandbox sender ``onboarding@resend.dev`` lets the demo
-  work without a verified domain (restricted to the account owner's
-  email).
+- **Provider-agnostic by design** — the tool depends on an
+  ``EmailAPI`` Protocol, not on Resend. Resend is the default because
+  it has the cleanest free-tier sandbox for the thesis demo; the
+  framework does not couple to it.
+- **Resend over SMTP for the default** — modern REST API, no SMTP
+  authentication ceremony, free tier (3K/month) covers academic-
+  grade demonstration with margin. Sandbox sender
+  ``onboarding@resend.dev`` lets the demo work without a verified
+  domain (restricted to the account owner's email).
 - **Plain-text first** — the approved artefact IS the message body;
   the HTML rendering is a thin paragraph wrapper rather than a
   templated layout. Avoids the trap where the LLM's voice gets
@@ -38,7 +67,13 @@ from __future__ import annotations
 import os
 import re
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from typing import Any, Callable, Protocol
+
+
+# Type alias for a factory that produces an :class:`EmailAPI` with no
+# arguments. Providers register one of these in the module-level
+# :data:`_PROVIDERS` registry; ``make_email_tool`` dispatches against it.
+EmailProviderFactory = Callable[[], "EmailAPI"]
 
 
 # ─── EmailAPI Protocol + implementations ─────────────────────────────────────
@@ -278,18 +313,85 @@ class EmailTool:
         return f"sent:{email_id}:{self.default_to}"
 
 
+# ─── Provider registry ──────────────────────────────────────────────────────
+#
+# The default provider is Resend; the registry exists so a project can
+# add SMTP / SendGrid / Mailgun / SES / etc. without modifying
+# ``EmailTool`` or this module. Adding a provider is two lines:
+#
+#     class MyEmailAPI: ...  (implement send_email)
+#     register_email_provider("myprovider", MyEmailAPI)
+#
+# After that, ``SFC_EMAIL_PROVIDER=myprovider`` (or
+# ``make_email_tool(provider="myprovider")``) routes through it.
+
+
+_PROVIDERS: dict[str, EmailProviderFactory] = {
+    "resend": ResendEmailAPI,
+}
+
+
+def register_email_provider(name: str, factory: EmailProviderFactory) -> None:
+    """Register an ``EmailAPI`` factory under ``name``.
+
+    The factory must be callable with no arguments and return an
+    object satisfying the :class:`EmailAPI` Protocol. Typically the
+    factory is the class itself, but it can be any zero-arg callable
+    — e.g. ``functools.partial(SmtpEmailAPI, server="smtp.gmail.com")``
+    for a pre-bound configuration.
+
+    Re-registering an existing name replaces the previous factory.
+    Names are normalised to lower-case so ``"Resend"`` and ``"resend"``
+    map to the same provider.
+    """
+    if not name:
+        raise ValueError("provider name must be a non-empty string")
+    _PROVIDERS[name.lower()] = factory
+
+
+def available_email_providers() -> tuple[str, ...]:
+    """Names of providers currently registered. Sorted for stable output."""
+    return tuple(sorted(_PROVIDERS))
+
+
+def _resolve_provider(name: str) -> EmailProviderFactory:
+    key = name.lower()
+    if key not in _PROVIDERS:
+        available = ", ".join(sorted(_PROVIDERS))
+        raise RuntimeError(
+            f"Unknown email provider {name!r}. Available: {available}. "
+            f"Register more via "
+            f"solo_founder_crew.adapters.email.register_email_provider(name, factory)."
+        )
+    return _PROVIDERS[key]
+
+
+# ─── Factory ────────────────────────────────────────────────────────────────
+
+
 def make_email_tool(
     *,
     sender: str | None = None,
     default_to: str | None = None,
     subject_prefix: str | None = None,
+    provider: str | None = None,
     api: EmailAPI | None = None,
 ):
     """Factory mirroring ``make_github_pr_tool``.
 
-    Reads ``SFC_EMAIL_FROM`` / ``SFC_EMAIL_TO`` / ``SFC_EMAIL_SUBJECT_PREFIX``
-    from the environment when the corresponding argument is not
-    passed. Returns a configured ``EmailTool``.
+    Reads from the environment when the corresponding argument is not
+    passed:
+
+    - ``SFC_EMAIL_FROM`` (required) — sender address.
+    - ``SFC_EMAIL_TO`` (optional) — default recipient.
+    - ``SFC_EMAIL_SUBJECT_PREFIX`` (optional) — e.g. ``"[Passly] "``.
+    - ``SFC_EMAIL_PROVIDER`` (optional, default ``"resend"``) — which
+      registered provider to instantiate. Ignored when ``api`` is
+      passed explicitly (the explicit object wins; the registry is
+      bypassed).
+
+    If neither ``api`` nor a known provider name is given, falls back
+    to ``"resend"`` for backward compatibility.
     """
     resolved_sender = sender or os.getenv("SFC_EMAIL_FROM", "")
     if not resolved_sender:
@@ -304,6 +406,9 @@ def make_email_tool(
         if subject_prefix is not None
         else os.getenv("SFC_EMAIL_SUBJECT_PREFIX", "")
     )
+    if api is None:
+        provider_name = provider or os.getenv("SFC_EMAIL_PROVIDER", "resend")
+        api = _resolve_provider(provider_name)()
     return EmailTool(
         sender=resolved_sender,
         default_to=resolved_to,

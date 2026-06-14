@@ -33,7 +33,10 @@ from solo_founder_crew.adapters.email import (
     FakeEmailAPI,
     _derive_subject,
     _to_html,
+    _PROVIDERS,
+    available_email_providers,
     make_email_tool,
+    register_email_provider,
 )
 
 
@@ -273,6 +276,129 @@ async def test_email_tool_registers_and_enforces_escalation(brief) -> None:
     )
     assert result.startswith("sent:")
     assert len(api.sent) == 1
+
+
+# ─── Pluggable provider registry ────────────────────────────────────────────
+
+
+@pytest.fixture
+def isolated_provider_registry(monkeypatch: pytest.MonkeyPatch):
+    """Snapshot the global provider registry around a test so a custom
+    registration does not leak into other tests."""
+    snapshot = dict(_PROVIDERS)
+    yield
+    _PROVIDERS.clear()
+    _PROVIDERS.update(snapshot)
+
+
+def test_resend_is_the_default_provider() -> None:
+    """Backward compat: out of the box, ``resend`` is registered and
+    is the default name used by ``make_email_tool``."""
+    assert "resend" in available_email_providers()
+
+
+def test_register_email_provider_adds_to_registry(
+    isolated_provider_registry,
+) -> None:
+    class StubEmailAPI:
+        def send_email(self, **kwargs) -> str:
+            return "stub-id"
+
+    register_email_provider("stub", StubEmailAPI)
+    assert "stub" in available_email_providers()
+
+
+def test_register_email_provider_normalises_case(
+    isolated_provider_registry,
+) -> None:
+    """``"SendGrid"`` and ``"sendgrid"`` resolve to the same factory."""
+
+    class StubEmailAPI:
+        def send_email(self, **kwargs) -> str:
+            return "stub-id"
+
+    register_email_provider("SendGrid", StubEmailAPI)
+    assert "sendgrid" in available_email_providers()
+
+
+def test_register_rejects_empty_name(isolated_provider_registry) -> None:
+    with pytest.raises(ValueError):
+        register_email_provider("", lambda: FakeEmailAPI())
+
+
+def test_make_email_tool_uses_sfc_email_provider_env(
+    isolated_provider_registry,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Env var ``SFC_EMAIL_PROVIDER`` selects which registered factory
+    instantiates the API."""
+    used: list[str] = []
+
+    class TaggedAPI:
+        def __init__(self):
+            used.append("constructed")
+
+        def send_email(self, **kwargs) -> str:
+            return "tagged-1"
+
+    register_email_provider("tagged", TaggedAPI)
+    monkeypatch.setenv("SFC_EMAIL_FROM", "hello@passly.gr")
+    monkeypatch.setenv("SFC_EMAIL_TO", "founder@passly.gr")
+    monkeypatch.setenv("SFC_EMAIL_PROVIDER", "tagged")
+
+    tool = make_email_tool()
+    assert isinstance(tool.api, TaggedAPI)
+    assert used == ["constructed"]
+
+
+def test_make_email_tool_explicit_provider_arg_wins(
+    isolated_provider_registry,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Explicit ``provider=`` overrides ``SFC_EMAIL_PROVIDER``."""
+
+    class A:
+        def send_email(self, **kwargs) -> str:
+            return "a"
+
+    class B:
+        def send_email(self, **kwargs) -> str:
+            return "b"
+
+    register_email_provider("a", A)
+    register_email_provider("b", B)
+    monkeypatch.setenv("SFC_EMAIL_FROM", "hello@passly.gr")
+    monkeypatch.setenv("SFC_EMAIL_PROVIDER", "a")
+
+    tool = make_email_tool(provider="b")
+    assert isinstance(tool.api, B)
+
+
+def test_make_email_tool_explicit_api_bypasses_registry(
+    isolated_provider_registry,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Passing ``api=...`` skips the registry entirely; even an unknown
+    ``SFC_EMAIL_PROVIDER`` value would not block the construction."""
+    monkeypatch.setenv("SFC_EMAIL_FROM", "hello@passly.gr")
+    monkeypatch.setenv("SFC_EMAIL_PROVIDER", "does-not-exist")
+
+    api = FakeEmailAPI()
+    tool = make_email_tool(api=api)
+    assert tool.api is api
+
+
+def test_make_email_tool_unknown_provider_raises(
+    isolated_provider_registry,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An unknown provider name surfaces a clear error listing what IS
+    registered, so the founder can fix the config."""
+    monkeypatch.setenv("SFC_EMAIL_FROM", "hello@passly.gr")
+    monkeypatch.setenv("SFC_EMAIL_PROVIDER", "carrier-pigeon")
+
+    with pytest.raises(RuntimeError, match="carrier-pigeon"):
+        make_email_tool()
 
 
 async def test_email_tool_refuses_roles_without_email_in_allowlist(brief) -> None:
