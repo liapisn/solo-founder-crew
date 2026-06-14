@@ -16,10 +16,19 @@ Schema (a single object keyed by ``thread_id``)::
         "task":             "Draft a launch teaser",
         "revisions":        3,
         "logical_channel":  "marketing",
-        "status":           "running" | "shipped" | "killed" | "exhausted" | "error: ..."
+        "status":           "running" | "shipped" | "killed" | "exhausted" | "error: ...",
+        "latest_gate_channel_id": "1234567890",   # optional
+        "latest_gate_message_id": "0987654321"    # optional
       },
       ...
     }
+
+The ``latest_gate_*`` pair points at the most recently-posted HITL
+gate message (Discord side). On respawn the daemon edits that message
+to mark it stale ("🔄 Run resumed — see the latest gate above") and
+strips its buttons, so the founder isn't confused by clickable-but-
+dead controls. The fields are optional: pre-M1.6 registries on disk
+do not have them and must still load.
 
 Read on daemon startup, written on every state transition. Concurrent
 writers are not expected (single daemon process); the registry uses
@@ -47,6 +56,12 @@ class RunRecord:
     extended with ``"running"`` (no terminal state yet) and
     ``"error: <message>"`` (the driver raised before reaching
     terminal).
+
+    ``latest_gate_channel_id`` / ``latest_gate_message_id`` track the
+    most recently posted HITL gate message so the daemon can edit it
+    on respawn (mark stale + strip buttons). Both default to ``None``
+    for runs that died before the first gate posted, or for registries
+    written before M1.6 added the fields.
     """
 
     thread_id: str
@@ -55,6 +70,8 @@ class RunRecord:
     revisions: int
     logical_channel: str
     status: str
+    latest_gate_channel_id: str | None = None
+    latest_gate_message_id: str | None = None
 
     @property
     def is_pending(self) -> bool:
@@ -118,6 +135,36 @@ class RunsRegistry:
             revisions=existing.revisions,
             logical_channel=existing.logical_channel,
             status=status,
+            latest_gate_channel_id=existing.latest_gate_channel_id,
+            latest_gate_message_id=existing.latest_gate_message_id,
+        )
+        self._flush()
+
+    def set_latest_gate(
+        self, thread_id: str, *, channel_id: str, message_id: str
+    ) -> None:
+        """Record the Discord coordinates of the most recently posted
+        HITL gate for this run.
+
+        Called each time a gate message is posted (turn 1 and every
+        revision). On respawn the daemon uses these coordinates to mark
+        the stale message before letting the resumed flow post a fresh
+        gate. No-op if the thread_id is not in the registry — the
+        daemon's "/draft" handler always inserts before the first gate
+        posts, so this guards against races, not against typical use.
+        """
+        existing = self._records.get(thread_id)
+        if existing is None:
+            return
+        self._records[thread_id] = RunRecord(
+            thread_id=existing.thread_id,
+            role=existing.role,
+            task=existing.task,
+            revisions=existing.revisions,
+            logical_channel=existing.logical_channel,
+            status=existing.status,
+            latest_gate_channel_id=channel_id,
+            latest_gate_message_id=message_id,
         )
         self._flush()
 
@@ -145,6 +192,8 @@ class RunsRegistry:
             if not isinstance(payload, dict):
                 continue
             try:
+                latest_channel = payload.get("latest_gate_channel_id")
+                latest_message = payload.get("latest_gate_message_id")
                 self._records[tid] = RunRecord(
                     thread_id=tid,
                     role=str(payload["role"]),
@@ -152,6 +201,12 @@ class RunsRegistry:
                     revisions=int(payload.get("revisions", 0)),
                     logical_channel=str(payload.get("logical_channel", "")),
                     status=str(payload.get("status", "running")),
+                    latest_gate_channel_id=(
+                        str(latest_channel) if latest_channel is not None else None
+                    ),
+                    latest_gate_message_id=(
+                        str(latest_message) if latest_message is not None else None
+                    ),
                 )
             except (KeyError, ValueError, TypeError):
                 # Skip malformed entries; never propagate.
@@ -160,9 +215,15 @@ class RunsRegistry:
     def _flush(self) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
         # Serialise as a thread_id-keyed object; drop the redundant
-        # ``thread_id`` field inside each row since it's the key.
+        # ``thread_id`` field inside each row since it's the key, and
+        # omit gate fields whose values are still ``None`` so the file
+        # stays narrow until those coordinates are known.
         payload = {
-            tid: {k: v for k, v in asdict(rec).items() if k != "thread_id"}
+            tid: {
+                k: v
+                for k, v in asdict(rec).items()
+                if k != "thread_id" and v is not None
+            }
             for tid, rec in self._records.items()
         }
         data = json.dumps(payload, ensure_ascii=False, indent=2)

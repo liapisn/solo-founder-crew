@@ -176,3 +176,79 @@ async def test_discord_hitl_drives_author_flow(
     assert posted.role_name == "marketing"
     assert posted.action == "final_approval_before_publish"
     assert posted.venture_id == "passly"
+
+
+# ─── on_posted callback (M1.6 — stale-gate edit on respawn) ─────────────────
+
+
+async def test_on_posted_fires_after_gate_posts() -> None:
+    """The hook gives the daemon a place to record the message_id of the
+    gate it just posted, so a future restart can edit that stale
+    message before the resumed flow posts a fresh one."""
+    received: list[dict] = []
+
+    def hook(*, request: HITLRequest, channel_id: str, message_id: str) -> None:
+        received.append(
+            {
+                "request_id": request.request_id,
+                "thread_id": request.thread_id,
+                "channel_id": channel_id,
+                "message_id": message_id,
+            }
+        )
+
+    transport = InMemoryTransport()
+    hitl = DiscordHITL(
+        transport,
+        channel_map={"marketing": "CHAN_MKT"},
+        on_posted=hook,
+    )
+
+    task = asyncio.ensure_future(hitl.review(_request()))
+    while not hitl.pending_request_ids():
+        await asyncio.sleep(0)
+
+    assert len(received) == 1
+    assert received[0]["request_id"] == "req-1"
+    assert received[0]["thread_id"] == "run-1"
+    assert received[0]["channel_id"] == "CHAN_MKT"
+    # InMemoryTransport.post_request returns f"msg-{request_id}"
+    assert received[0]["message_id"] == "msg-req-1"
+
+    hitl.submit_response(FounderResponse(request_id="req-1", action="approve"))
+    await task
+
+
+async def test_on_posted_failure_does_not_break_review() -> None:
+    """A buggy ``on_posted`` callback must not break the live gate; the
+    review path still resolves normally."""
+
+    def bad_hook(**_: object) -> None:
+        raise RuntimeError("simulated buggy callback")
+
+    transport = InMemoryTransport()
+    hitl = DiscordHITL(
+        transport,
+        channel_map={"marketing": "CHAN_MKT"},
+        on_posted=bad_hook,
+    )
+
+    task = asyncio.ensure_future(hitl.review(_request()))
+    while not hitl.pending_request_ids():
+        await asyncio.sleep(0)
+    hitl.submit_response(FounderResponse(request_id="req-1", action="approve"))
+    decision = await task
+    assert decision.action == "approve"
+
+
+async def test_no_on_posted_callback_is_fine() -> None:
+    """Adapters constructed without the hook still post and resolve
+    normally — backward compatible."""
+    transport = InMemoryTransport()
+    hitl = DiscordHITL(transport, channel_map={"marketing": "CHAN_MKT"})
+    task = asyncio.ensure_future(hitl.review(_request()))
+    while not hitl.pending_request_ids():
+        await asyncio.sleep(0)
+    hitl.submit_response(FounderResponse(request_id="req-1", action="approve"))
+    decision = await task
+    assert decision.action == "approve"

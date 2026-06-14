@@ -41,10 +41,18 @@ Citable in Ch.3 §3.8.6.
 from __future__ import annotations
 
 import asyncio
-from typing import Protocol
+from typing import Callable, Protocol
 
 from solo_founder_crew.hitl import FounderDecision
 from solo_founder_crew.hitl_request import FounderResponse, HITLRequest
+
+
+# Signature for the optional ``on_posted`` callback the daemon installs
+# on ``DiscordHITL`` to record the Discord coordinates of every posted
+# gate. Invoked synchronously after the transport returns; called with
+# keyword arguments so callers can add fields later without breaking
+# existing implementations.
+OnPostedCallback = Callable[..., None]
 
 
 class DiscordTransport(Protocol):
@@ -94,12 +102,20 @@ class DiscordHITL:
         channel_map: dict[str, str],
         *,
         default_channel_id: str | None = None,
+        on_posted: "OnPostedCallback | None" = None,
     ) -> None:
         self._transport = transport
         self._channel_map = dict(channel_map)
         self._default_channel_id = default_channel_id
         # request_id -> Future[FounderDecision]. The pending gate(s).
         self._pending: dict[str, asyncio.Future[FounderDecision]] = {}
+        # Optional hook the daemon installs to record the Discord
+        # coordinates (channel_id, message_id) of every posted gate so
+        # a restart can edit the stale message before the resumed flow
+        # posts a fresh one. The callback is invoked synchronously
+        # after ``transport.post_request`` returns. Failures inside the
+        # callback are swallowed so they never break a live gate post.
+        self._on_posted = on_posted
 
     # ── HITLContract surface ────────────────────────────────────────────
 
@@ -120,10 +136,26 @@ class DiscordHITL:
 
         channel_id = self._resolve_channel(request.channel)
         try:
-            await self._transport.post_request(request, channel_id=channel_id)
+            message_id = await self._transport.post_request(
+                request, channel_id=channel_id
+            )
         except Exception:
             self._pending.pop(request.request_id, None)
             raise
+        # Fire the on_posted hook, if installed. Defensive try/except
+        # — a buggy callback must never break the live gate.
+        if self._on_posted is not None and message_id is not None:
+            try:
+                self._on_posted(
+                    request=request,
+                    channel_id=channel_id,
+                    message_id=str(message_id),
+                )
+            except Exception:
+                import traceback
+
+                print("⚠ on_posted callback raised (gate post itself succeeded):")
+                traceback.print_exc()
 
         try:
             return await future
@@ -147,6 +179,16 @@ class DiscordHITL:
     def pending_request_ids(self) -> tuple[str, ...]:
         """Request ids currently awaiting a founder decision (for status)."""
         return tuple(rid for rid, f in self._pending.items() if not f.done())
+
+    def set_on_posted(self, callback: "OnPostedCallback | None") -> None:
+        """Install (or clear) the gate-posted hook after construction.
+
+        Convenient for daemons that build the HITL through a helper
+        (e.g. :func:`solo_founder_crew.app.build_crew`) and only have
+        the registry to thread into the hook *after* the crew is
+        assembled. Pass ``None`` to remove a previously installed hook.
+        """
+        self._on_posted = callback
 
     # ── Channel bindings (set at startup, e.g. by auto-create) ───────────
 

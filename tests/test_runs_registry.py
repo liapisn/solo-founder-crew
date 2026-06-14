@@ -178,3 +178,103 @@ def test_atomic_write_does_not_leave_tmp_files(tmp_path: Path) -> None:
 )
 def test_is_pending_property(status: str, expected: bool) -> None:
     assert _record(status=status).is_pending is expected
+
+
+# ─── Latest gate coordinates (M1.6: stale-gate edit on respawn) ─────────────
+
+
+def test_latest_gate_defaults_to_none(tmp_path: Path) -> None:
+    """Fresh registries hold no gate coordinates until a gate posts."""
+    reg = RunsRegistry(tmp_path / "runs.json")
+    reg.put(_record(tid="run-a"))
+    rec = reg.get("run-a")
+    assert rec is not None
+    assert rec.latest_gate_channel_id is None
+    assert rec.latest_gate_message_id is None
+
+
+def test_set_latest_gate_persists_and_roundtrips(tmp_path: Path) -> None:
+    path = tmp_path / "runs.json"
+    reg = RunsRegistry(path)
+    reg.put(_record(tid="run-b"))
+    reg.set_latest_gate("run-b", channel_id="1234", message_id="9876")
+
+    reloaded = RunsRegistry(path).get("run-b")
+    assert reloaded is not None
+    assert reloaded.latest_gate_channel_id == "1234"
+    assert reloaded.latest_gate_message_id == "9876"
+
+
+def test_set_latest_gate_unknown_id_is_noop(tmp_path: Path) -> None:
+    """The daemon's /draft handler always inserts before the first gate
+    posts; this is defensive against a race with a removed/cleared
+    record."""
+    reg = RunsRegistry(tmp_path / "runs.json")
+    reg.set_latest_gate("nope", channel_id="x", message_id="y")
+    assert reg.get("nope") is None
+
+
+def test_set_latest_gate_overwrites_on_revision(tmp_path: Path) -> None:
+    """Each revision posts a new gate message — the registry should
+    track the *latest* one so respawn edits the right message."""
+    reg = RunsRegistry(tmp_path / "runs.json")
+    reg.put(_record(tid="run-c"))
+    reg.set_latest_gate("run-c", channel_id="C", message_id="m1")  # turn 1
+    reg.set_latest_gate("run-c", channel_id="C", message_id="m2")  # revision
+    rec = reg.get("run-c")
+    assert rec is not None
+    assert rec.latest_gate_message_id == "m2"
+
+
+def test_set_status_preserves_gate_coordinates(tmp_path: Path) -> None:
+    """Status updates (running → shipped, etc.) must not clobber the
+    gate coordinates. If they did, a record that completed quickly
+    would lose the message_id before respawn could read it."""
+    reg = RunsRegistry(tmp_path / "runs.json")
+    reg.put(_record(tid="run-d"))
+    reg.set_latest_gate("run-d", channel_id="C", message_id="M")
+    reg.set_status("run-d", "shipped")
+    rec = reg.get("run-d")
+    assert rec is not None
+    assert rec.latest_gate_message_id == "M"
+    assert rec.status == "shipped"
+
+
+def test_loader_accepts_pre_m16_files_without_gate_fields(tmp_path: Path) -> None:
+    """Backward compat: a runs.json written before the gate-tracking
+    fields existed must still load. Missing fields default to None."""
+    path = tmp_path / "runs.json"
+    path.write_text(
+        json.dumps(
+            {
+                "legacy-run": {
+                    "role": "marketing",
+                    "task": "x",
+                    "revisions": 1,
+                    "logical_channel": "marketing",
+                    "status": "running",
+                    # NB: no latest_gate_* keys
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    reg = RunsRegistry(path)
+    rec = reg.get("legacy-run")
+    assert rec is not None
+    assert rec.role == "marketing"
+    assert rec.latest_gate_channel_id is None
+    assert rec.latest_gate_message_id is None
+
+
+def test_flush_omits_none_gate_fields(tmp_path: Path) -> None:
+    """The serialised JSON should not carry ``null`` for gate
+    coordinates that were never set — keeps the file narrow until
+    those values exist."""
+    path = tmp_path / "runs.json"
+    reg = RunsRegistry(path)
+    reg.put(_record(tid="run-e"))  # no gate posted yet
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    row = raw["run-e"]
+    assert "latest_gate_channel_id" not in row
+    assert "latest_gate_message_id" not in row

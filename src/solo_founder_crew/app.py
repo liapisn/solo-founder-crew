@@ -210,12 +210,42 @@ def build_crew(
 # ─── Checkpointer (durable across restarts) ─────────────────────────────────────
 
 
+async def _mark_stale_gate(client, *, channel_id: str, message_id: str) -> None:
+    """Edit a pre-restart HITL gate message to mark it stale + strip
+    its dead buttons.
+
+    Fetches the Discord message identified by ``(channel_id,
+    message_id)`` and rewrites its content to point the founder at
+    the freshly-posted gate, while clearing its components (so the
+    "Approve / Send back / Kill" buttons disappear). Best-effort —
+    any failure (message deleted, channel gone, missing permissions)
+    is logged and swallowed so a startup hiccup never blocks the
+    rest of the respawn.
+    """
+    try:
+        channel = client.get_channel(int(channel_id))
+        if channel is None:
+            channel = await client.fetch_channel(int(channel_id))
+        msg = await channel.fetch_message(int(message_id))
+        await msg.edit(
+            content="🔄 Run resumed — see the latest gate above.",
+            embed=None,
+            view=None,
+        )
+    except Exception as e:
+        print(
+            f"  · could not mark stale gate "
+            f"(channel={channel_id}, message={message_id}): {e}"
+        )
+
+
 async def _respawn_pending_runs(
     *,
     registry,
     crew,
     runs: dict,
     announce,
+    client=None,
 ) -> None:
     """On startup, re-spawn driver tasks for runs that were in flight
     when the previous process died.
@@ -224,14 +254,18 @@ async def _respawn_pending_runs(
 
     1. Mirror the metadata into the in-memory ``runs`` dict so ``/status``
        can show it immediately.
-    2. Spawn an ``asyncio`` task that calls ``crew.resume(thread_id,
+    2. If the record carries a ``latest_gate_*`` pair (post-M1.6
+       registries do), edit the stale Discord message to say
+       "🔄 Run resumed — see the latest gate above" and strip its
+       buttons. The old buttons can no longer be served by this
+       process, so this prevents the founder from clicking them
+       and getting Discord's generic "interaction failed".
+    3. Spawn an ``asyncio`` task that calls ``crew.resume(thread_id,
        role)``. That call re-builds the same graph, reads the paused
        state from the checkpointer, and posts a *fresh* HITL gate
-       message — the old message's buttons are stale by design (this
-       process has no view registered for their custom_ids; clicking
-       them shows "interaction failed"). The fresh gate gets a new
+       message (with the live buttons). The fresh gate gets a new
        Future, and the click on its button resolves it normally.
-    3. On terminal status (or ``KeyError`` if the checkpointer no
+    4. On terminal status (or ``KeyError`` if the checkpointer no
        longer knows about the thread), update both the in-memory
        dict and the persistent registry, then announce the outcome
        in the role's channel.
@@ -247,6 +281,19 @@ async def _respawn_pending_runs(
         + ", ".join(f"{r.thread_id}({r.role})" for r in pending)
     )
     for record in pending:
+        # Best-effort: mark the pre-restart gate stale BEFORE we
+        # spawn the resume task, so the founder doesn't race the
+        # new gate with the old one's dead buttons.
+        if (
+            client is not None
+            and record.latest_gate_channel_id
+            and record.latest_gate_message_id
+        ):
+            await _mark_stale_gate(
+                client,
+                channel_id=record.latest_gate_channel_id,
+                message_id=record.latest_gate_message_id,
+            )
         runs[record.thread_id] = {
             "role": record.role,
             "task": record.task,
@@ -441,6 +488,19 @@ async def run(config: RuntimeConfig) -> None:
             f"📂 Registry: {registry.path.resolve()} "
             f"(all={len(registry.all())}, pending={len(registry.pending())})"
         )
+        # Install the on_posted hook: every time a HITL gate is posted
+        # to Discord, record the (channel_id, message_id) on the run's
+        # registry record. On restart we use those coordinates to edit
+        # the stale gate before posting a fresh one — closes the M1.5
+        # "old buttons say 'interaction failed'" gap.
+        def _record_gate(
+            *, request, channel_id: str, message_id: str
+        ) -> None:
+            registry.set_latest_gate(
+                request.thread_id, channel_id=channel_id, message_id=message_id
+            )
+
+        hitl.set_on_posted(_record_gate)
 
         role_names = [r.name for r in crew.roles]
 
@@ -647,6 +707,7 @@ async def run(config: RuntimeConfig) -> None:
                     crew=crew,
                     runs=runs,
                     announce=_announce_outcome,
+                    client=client,
                 )
                 print("· on_ready: startup complete.")
             except Exception:  # don't crash the daemon's event loop silently
