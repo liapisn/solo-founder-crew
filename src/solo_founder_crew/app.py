@@ -434,6 +434,13 @@ async def run(config: RuntimeConfig) -> None:
         # checkpointer's SQLite DB so a single ``data/`` directory holds
         # all persistent state for the daemon. See runs_registry.py.
         registry = RunsRegistry(_registry_path(config.checkpointer_url))
+        # Diagnostic: surface the registry's resolved path + counts at
+        # startup so any "respawn didn't fire" issue can be diagnosed
+        # from the daemon's stdout without a debugger.
+        print(
+            f"📂 Registry: {registry.path.resolve()} "
+            f"(all={len(registry.all())}, pending={len(registry.pending())})"
+        )
 
         role_names = [r.name for r in crew.roles]
 
@@ -598,38 +605,56 @@ async def run(config: RuntimeConfig) -> None:
 
         @client.event
         async def on_ready():  # noqa: ANN202
-            guild = discord.Object(id=config.guild_id)
+            # Wrap the whole handler so any failure surfaces as a
+            # visible traceback in stdout rather than disappearing
+            # into discord.py's silent event-handler error path. This
+            # is debug-grade defence; cheap to keep on permanently.
             try:
-                # Commands are registered globally; copy them into the guild so
-                # a guild-scoped sync picks them up and they appear instantly.
-                tree.copy_global_to(guild=guild)
-                synced = await tree.sync(guild=guild)
-            except discord.Forbidden:
+                print("· on_ready: syncing slash commands…")
+                guild = discord.Object(id=config.guild_id)
+                try:
+                    # Commands are registered globally; copy them into the guild so
+                    # a guild-scoped sync picks them up and they appear instantly.
+                    tree.copy_global_to(guild=guild)
+                    synced = await tree.sync(guild=guild)
+                except discord.Forbidden:
+                    print(
+                        "⚠ Connected, but could NOT register slash commands — the bot\n"
+                        "  is missing the 'applications.commands' scope. Re-invite it\n"
+                        "  with BOTH 'bot' AND 'applications.commands' (OAuth2 → URL\n"
+                        "  Generator), then restart. See docs/running-the-crew.md."
+                    )
+                    return
+                print(f"· on_ready: synced {len(synced)} commands; ensuring channels…")
+                role_webhooks.update(await ensure_channels(client, config, crew, hitl))
                 print(
-                    "⚠ Connected, but could NOT register slash commands — the bot\n"
-                    "  is missing the 'applications.commands' scope. Re-invite it\n"
-                    "  with BOTH 'bot' AND 'applications.commands' (OAuth2 → URL\n"
-                    "  Generator), then restart. See docs/running-the-crew.md."
+                    f"Crew online as {client.user} · venture={crew.brief.name} · "
+                    f"roles={role_names} · {len(synced)} commands on guild "
+                    f"{config.guild_id}"
                 )
-                return
-            role_webhooks.update(await ensure_channels(client, config, crew, hitl))
-            print(
-                f"Crew online as {client.user} · venture={crew.brief.name} · "
-                f"roles={role_names} · {len(synced)} commands on guild "
-                f"{config.guild_id}"
-            )
-            # Restart-durability: re-spawn drivers for runs that were
-            # still in flight when the previous process died. Each
-            # resume task posts a fresh HITL gate in the role's
-            # channel (the old message's buttons are stale and will
-            # show "interaction failed" if clicked — that's a known
-            # gap; see M1.5 follow-up note in docs/roadmap.md).
-            await _respawn_pending_runs(
-                registry=registry,
-                crew=crew,
-                runs=runs,
-                announce=_announce_outcome,
-            )
+                # Restart-durability: re-spawn drivers for runs that were
+                # still in flight when the previous process died. Each
+                # resume task posts a fresh HITL gate in the role's
+                # channel (the old message's buttons are stale and will
+                # show "interaction failed" if clicked — that's a known
+                # gap; see M1.5 follow-up note in docs/roadmap.md).
+                print(
+                    f"· on_ready: checking for pending runs to respawn "
+                    f"(registry has {len(registry.pending())} pending)…"
+                )
+                await _respawn_pending_runs(
+                    registry=registry,
+                    crew=crew,
+                    runs=runs,
+                    announce=_announce_outcome,
+                )
+                print("· on_ready: startup complete.")
+            except Exception:  # don't crash the daemon's event loop silently
+                import traceback
+
+                print("✗ on_ready raised — daemon may still be online but startup "
+                      "did NOT complete cleanly:")
+                traceback.print_exc()
 
         print(f"Connecting to Discord (guild {config.guild_id})… Ctrl-C to stop.")
         try:
