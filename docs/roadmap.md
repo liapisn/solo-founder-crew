@@ -30,13 +30,16 @@ enriching the Ch.4 Passly demonstration (still sandbox/synthetic).
 |---|-----------|--------------|--------|
 | **M1** | Live crew daemon | Crew online as a local process; `/draft` `/ask` `/crew` `/status`; founder approves with buttons; durable across restarts; auto-created channels; per-role identity via webhooks | ✅ **built** (live-verify the `/draft` button gate to fully close) |
 | **M2** | Real outbound tools | Replace stub publish with real, escalation-gated actions. **Phase 1 done:** Approve posts the artifact to #published (Discord). **Next:** send-email, open-PR, update-a-sheet | 🔨 in progress |
+| **M2.5** | Per-role model routing | `Crew.role_llms` map: each role can be backed by a different model (e.g. Marketing → Haiku, Engineering → Opus). Demonstrates `LLMClient` Protocol neutrality across tiers; sets up multi-vendor (OpenAI, Gemini) without further runtime changes. | ✅ **built** — Anthropic tier routing landed; OpenAI + Gemini adapters deferred until needed |
 | **M3** | Scheduled (proactive) work | Cron triggers: e.g. weekly ads report → #ads-report for review. First "it runs itself" moment | ⏳ |
 | **M4** | Event-driven work | Inbound events → flows: a customer message → support triage → draft reply with buttons | ⏳ |
 | **M5** | Flow library | Flows beyond Author Flow: triage (support), report (ads/finance), qualification (sales). `/ask` is an early taste (advisory/consult) | ⏳ (partial: `/ask`) |
 | **M6** | Memory + handoff | Per-role knowledge stores (each agent its own context); inter-agent handoff + arbitration | ⏳ |
 
-Dependency shape: **M1 is the spine.** M2 + M3 + M4 sit directly on it; M5
-+ M6 are the deep end.
+Dependency shape: **M1 is the spine.** M2 + M2.5 + M3 + M4 sit directly on it; M5
++ M6 are the deep end. M2.5 is a cross-cutting capability — it touches the
+runtime LLM contract once, then any downstream role can opt into a different
+model without further framework changes.
 
 ## Milestone detail
 
@@ -58,6 +61,42 @@ new/expensive actions to `must_escalate`. This is what makes Approve real.
 - **Next:** send-email (SMTP/Resend), open-PR (GitHub token — wires
   `pr_tool` for the engineering role), update-a-sheet (Google Sheets). Each
   is a new tool behind the same seam; each needs its own credential.
+
+### M2.5 — Per-role model routing ✅
+
+Each `Role` can be backed by a *different* model. The framework's
+`LLMClient` Protocol is substrate-neutral by design; `Crew` now
+exposes that as a per-role routing map:
+
+```python
+crew = Crew(
+    brief=brief, roles=[marketing, engineering],
+    llm=AnthropicLLM(model="claude-haiku-4-5"),      # default
+    role_llms={"engineering": AnthropicLLM(model="claude-opus-4-7")},
+    hitl=hitl, tools=tools,
+)
+```
+
+The runtime resolves the LLM at node-construction time
+(`Crew._llm_for(role)`); no node, no graph, and no checkpointer code
+knows about tiers. Verified end-to-end by `examples/per_role_models.py`
+(marketing on Haiku, engineering on Opus, distinct adapter call logs).
+
+**Multi-vendor (OpenAI, Gemini) is deferred** until a concrete use case
+demands it. The Protocol is one method (`complete(system, user) ->
+LLMResponse`); adding a vendor is one file + one credential + one
+`__post_init__` validation. The seam is open; we walk through it when
+needed.
+
+Open follow-ups (out of scope for M2.5 itself):
+- **Multi-stage within a role.** Engineering's "Opus for architecture,
+  Sonnet for implementation" is two *actions* with different LLMs,
+  not one role with a pipeline. Cleanest model is sub-roles
+  (`engineering_architect`, `engineering_implementer`) with distinct
+  `DecisionRights`. Lands when the live engineering Dev Flow needs it.
+- **Cost telemetry.** Each `AnthropicLLM.calls[*]` already records
+  token usage; aggregating per-role per-run cost is a small
+  observability win for M3 (scheduled work) where budgets matter.
 
 ### M3 — Scheduled work
 A scheduler (cron) fires flows proactively; results post to the role channel

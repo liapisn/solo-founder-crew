@@ -6,19 +6,25 @@ The framework's runtime depends only on the `LLMClient` Protocol:
         def complete(self, system: str, user: str) -> LLMResponse: ...
 
 This narrow contract is the deliberate decoupling of framework code
-from any specific LLM SDK. Two implementations ship in the package:
+from any specific LLM SDK. Three implementations ship in the package:
 
 - `MockLLM`: pre-loaded response queue, no network, no API key. Used
-  by tests and by the spike runners (carried forward from
-  `spikes/shared/mock_llm.py`).
-- `RealLLM`: Anthropic SDK wrapper. Lazy-imports `anthropic` so the
-  package can be installed and tested without the SDK present.
+  by tests and by the spike runners.
+- `AnthropicLLM`: Anthropic SDK wrapper, parameterised on model name.
+  Use to point different roles at different Claude tiers (Haiku for
+  most, Sonnet for default, Opus for hard work). Lazy-imports
+  `anthropic` so the package remains importable without the SDK.
+- `RealLLM`: deprecated alias for `AnthropicLLM`, kept for
+  backwards-compat with the Phase-1 examples and the spikes.
 
-Additional adapters (Azure, Bedrock, local Ollama) can satisfy the
-same Protocol without touching the framework.
+Additional adapters (OpenAI, Gemini, Azure, Bedrock, local Ollama)
+satisfy the same Protocol without touching framework code; see the
+roadmap M2.5 entry.
 
 Citable in Ch.3 §"LLM substitution" and Ch.5 §"Reproducibility" — the
-mock is what makes scoring runs free and deterministic.
+mock is what makes scoring runs free and deterministic; the
+Anthropic adapter is what proves the Protocol is substrate-neutral
+across at least three Claude tiers driving the same crew.
 """
 from __future__ import annotations
 
@@ -79,13 +85,27 @@ class MockLLM:
 
 
 @dataclass
-class RealLLM:
-    """Anthropic-backed LLMClient. Used for live runs.
+class AnthropicLLM:
+    """Anthropic-backed LLMClient.
 
-    Lazy-imports `anthropic` so the framework remains importable on
-    systems without the SDK. Validates `ANTHROPIC_API_KEY` at
-    construction so missing-credential failures surface early, not
-    on the first call.
+    Parameterised on ``model`` so a single class drives any Claude tier.
+    Common choices today:
+
+    - ``claude-haiku-4-5`` — cheap, fast; sensible default for the
+      framework's "coordination brain" and any role whose work is
+      bounded by the brief (Marketing, Customer Support, Sales).
+    - ``claude-sonnet-4-6`` — middle tier; a reasonable upgrade when
+      Haiku draft quality is marginal.
+    - ``claude-opus-4-7`` — top tier; reserve for roles whose action
+      is consequential or open-ended (Engineering architecture work,
+      complex Finance analysis).
+
+    The framework's ``role_llms`` map on ``Crew`` is the supported
+    way to route per-role; see ``examples/per_role_models.py``.
+
+    Lazy-imports ``anthropic`` so the package remains importable on
+    systems without the SDK. Validates ``ANTHROPIC_API_KEY`` at
+    construction so missing-credential failures surface early.
     """
 
     model: str = "claude-haiku-4-5"
@@ -97,12 +117,12 @@ class RealLLM:
             import anthropic  # noqa: F401
         except ImportError as e:
             raise RuntimeError(
-                "RealLLM requires `pip install anthropic`. "
+                "AnthropicLLM requires `pip install anthropic`. "
                 "Use MockLLM if you do not need live calls."
             ) from e
         if not os.getenv("ANTHROPIC_API_KEY"):
             raise RuntimeError(
-                "RealLLM requires ANTHROPIC_API_KEY to be set in the "
+                "AnthropicLLM requires ANTHROPIC_API_KEY to be set in the "
                 "environment (or loaded from .env via load_dotenv())."
             )
 
@@ -133,6 +153,12 @@ class RealLLM:
             }
         )
         return LLMResponse(text=text, call_index=idx)
+
+
+# Backwards-compat alias. Existing examples (passly_launch.py and the
+# spike runners) still import RealLLM; new code should prefer
+# AnthropicLLM directly.
+RealLLM = AnthropicLLM
 
 
 def load_dotenv(path: Path | str = ".env") -> bool:

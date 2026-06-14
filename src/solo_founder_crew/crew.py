@@ -73,6 +73,28 @@ class Crew:
     (LLM, HITL, ToolRegistry) are reused across runs. The optional
     ``checkpointer`` allows cross-process pause/resume; default is
     in-memory.
+
+    **Per-role LLM routing.** ``llm`` is the crew default — used by
+    every role unless an override exists in ``role_llms``. The map is
+    keyed by role *name* (string), so the same routing config works
+    whether the crew was constructed directly or via the Crew
+    Generator (which produces ``Role`` instances at runtime).
+
+    Example::
+
+        crew = Crew(
+            brief=brief,
+            roles=[marketing, engineering],
+            llm=AnthropicLLM(model="claude-haiku-4-5"),       # default
+            role_llms={"engineering": AnthropicLLM(model="claude-opus-4-7")},
+            hitl=hitl,
+            tools=tools,
+        )
+
+    The mapping is type-checked at use rather than at construction:
+    keys that do not correspond to any role in ``roles`` are simply
+    inert (no error), so the same routing config can apply to crews
+    with different role compositions.
     """
 
     brief: VentureBrief
@@ -82,6 +104,7 @@ class Crew:
     tools: ToolRegistry
     trace: RunTrace = field(default_factory=RunTrace)
     checkpointer: "BaseCheckpointSaver | None" = None
+    role_llms: dict[str, LLMClient] = field(default_factory=dict)
 
     def role(self, name: str) -> Role:
         """Look up a role by name. Raises KeyError if absent."""
@@ -130,7 +153,7 @@ class Crew:
 
         graph = build_author_graph(
             role=chosen_role,
-            llm=self.llm,
+            llm=self._llm_for(chosen_role),
             tools=self.tools,
             trace=self.trace,
             checkpointer=self.checkpointer,
@@ -183,6 +206,15 @@ class Crew:
         )
 
     # ─── Internals ──────────────────────────────────────────────────────────
+
+    def _llm_for(self, role: Role) -> LLMClient:
+        """Resolve the LLM to use for *role*.
+
+        Returns the override in ``role_llms`` if present, otherwise the
+        crew default ``llm``. Keyed by role name (string) so the same
+        config survives Crew Generator regeneration of role instances.
+        """
+        return self.role_llms.get(role.name, self.llm)
 
     def _resolve_role(self, role: Role | str | None) -> Role:
         if isinstance(role, Role):

@@ -40,6 +40,7 @@ from solo_founder_crew.hitl_request import (
     ReviewOption,
 )
 from solo_founder_crew.llm import (
+    AnthropicLLM,
     LLMClient,
     LLMResponse,
     MockLLM,
@@ -121,7 +122,8 @@ __all__ = [
     "LLMClient",
     "LLMResponse",
     "MockLLM",
-    "RealLLM",
+    "AnthropicLLM",
+    "RealLLM",  # deprecated alias of AnthropicLLM
     "QueueExhausted",
     "load_dotenv",
 ]
