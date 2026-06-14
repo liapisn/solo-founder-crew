@@ -19,8 +19,6 @@ each role's system prompt is brief-bound and distinctive.
 """
 from __future__ import annotations
 
-import pytest
-
 from solo_founder_crew import (
     Crew,
     DecisionRights,
@@ -31,7 +29,6 @@ from solo_founder_crew import (
     ToolRegistry,
     VentureBrief,
     make_engineering,
-    make_marketing,
 )
 
 PRESS = "Press release draft.\n"
