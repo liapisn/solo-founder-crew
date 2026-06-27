@@ -239,8 +239,51 @@ go-live gate — real PII and money mean it cannot be skipped. **B6** is the
 proof. Nothing here is on the thesis critical path; the thesis evaluation
 stays sandbox/synthetic by design.
 
+## Ch.4 Passly demo (in-thesis, due 2026-09-30)
+
+Decided 2026-06-27: a **thin slice** of the go-live track is pulled *into* the
+thesis as the **Ch.4 Passly application** — a working demo of the platform as
+a shop owner sees it when **creating a wallet pass ("πάσο") for a (demo)
+shop**. This is B0+B1+B2 (+ a web HITL surface) at demo grade, on synthetic
+data; full go-live (B3–B6, real customers/PII/billing) stays post-submission.
+It lives in a **new `passly` repo** that consumes this one as a dependency.
+
+**Build decisions:**
+- **Real signed `.pkpass` (Apple Wallet)** — passes that actually add to
+  Apple Wallet, not a visual mock. Requires an **Apple Developer Program
+  cert (~$99/yr)** — external long pole; enrolment is the first action and
+  gates P1 (needs Pass Type ID, signing `.p12`, Team ID).
+- **AI crew integrated + web approval** — `solo-founder-crew`'s marketing
+  crew drafts the pass copy + launch campaign; the founder approves/edits in
+  the web UI via a new **`WebHITL` adapter**. This is a *second* adapter on
+  the HITL seam alongside `DiscordHITL` — the strongest empirical evidence
+  for the §3.8 substitutability claim, and Passly-live step B2.
+
+**Architecture:** `Next.js UI → FastAPI → solo-founder-crew`. The FastAPI
+service imports the framework; the framework repo stays clean.
+
+| # | Phase | What | Gated by |
+|---|-------|------|----------|
+| **P0** | Scaffold | new `passly` repo; `web/` (Next.js) + `api/` (FastAPI importing `solo-founder-crew`); local dev runs | — |
+| **P1** | Pass issuance | pass template with shop branding → signed `.pkpass` → "Add to Apple Wallet" | Apple cert |
+| **P2** | Shop + designer UI | create shop (name/logo/colours/offer) + live pass preview — the "create a pass" flow | — |
+| **P3** | Crew + WebHITL | FastAPI drives the crew to draft pass copy + campaign; founder approves/edits in web (`WebHITL`, 2nd HITL adapter) | — |
+| **P4** | Demo polish | wire the real demo-shop data; end-to-end open → create shop → crew drafts → approve → real `.pkpass`; UI polish | shop data |
+
+**Synergy with Ch.5 eval:** the demo's shop scenarios double as the eval
+harness scenarios — authored once, used for both Ch.4 (application) and Ch.5
+(evaluation).
+
 ## Decisions log
 
+- **Ch.4 = a real Passly demo, not a mockup (2026-06-27).** The thesis Ch.4
+  application is a working demo: create a real signed `.pkpass` for a demo
+  shop, with the AI crew drafting copy/campaign and the founder approving via
+  a web `WebHITL` adapter. Chosen over a visual-mock UI because (a) a 2nd
+  HITL adapter is the strongest evidence for §3.8 substitutability, and (b)
+  it is a reusable thin slice of Passly-live (B1/B2). New `passly` repo,
+  `Next.js → FastAPI → solo-founder-crew`. Apple Developer cert is the long
+  pole — enrol first.
 - **Thesis and Passly-live decoupled; thesis first (2026-06-27).** The
   διπλωματική submits on the sandbox/synthetic demo (defensible as-is); the
   Passly go-live track (B0–B6) runs post-submission so a fuzzy product goal
