@@ -11,6 +11,15 @@ defensible (Ch.3). This roadmap is what the framework *enables*, built on top
 of it. Most of it is post-thesis; the most it should touch the thesis is
 enriching the Ch.4 Passly demonstration (still sandbox/synthetic).
 
+**Two tracks, decoupled (decided 2026-06-27).** The thesis ships first —
+prose → submit by 2026-08-31 on the existing sandbox/synthetic Passly demo;
+no live product gates the submission. *Then* the real goal: **Passly live, a
+first real Greek SMB onboarded.** The crew milestones below (M1–M6) are the
+*capability ladder*; the **Passly go-live track** (B0–B6, near the bottom) is
+the *product buildout* that consumes them and reaches a paying-real-customer
+state. M1–M6 are necessary-but-not-sufficient for go-live — B0/B1/B2/B5 are
+product layers the crew repo does not contain.
+
 ## The reusable spine (already built)
 
 - **Typed authority** — each `Role` has its own `DecisionRights` (`can` /
@@ -202,8 +211,41 @@ Each function gets a flow shaped like its real job, sharing primitives.
 Per-role memory namespace (read/write across runs) + agents passing work to
 each other and to the founder; the "arbitration/coordination" layer.
 
+## Passly go-live track (post-submission)
+
+The capability ladder above turns the crew into a *living company*. This track
+turns **Passly** into a *live venture* — a first real Greek SMB onboarded,
+real wallet passes issued, a real campaign sent. It lives in a **separate
+`passly` repo** (not yet created) that consumes `solo-founder-crew` as a
+dependency; only B3/B4 touch this repo. Scope, scale, and honesty up front:
+this is a startup buildout measured in **months, not weeks**, and it starts in
+earnest *after* the thesis is submitted (2026-08-31). The framework spine is
+not rewritten — B4 walks through seams that are already open.
+
+| # | Phase | What it adds | Where | Status |
+|---|-------|--------------|-------|--------|
+| **B0** | Product repo bootstrap | New `passly` repo; depends on `solo-founder-crew`; CI; `.env`/secrets; deploy target chosen | `passly` | ⏳ |
+| **B1** | Wallet pass issuance | The product core: Apple Wallet (PassKit, `.pkpass` signing, Apple Developer cert) + Google Wallet API. Issue, update, revoke a pass | `passly` | ⏳ |
+| **B2** | SMB onboarding surface | SMB sign-up; brand config; define a pass (loyalty card / coupon); QR + link distribution to end-customers | `passly` | ⏳ |
+| **B3** | AI marketing layer | Crew marketing role → real campaigns; pass-update pushes on campaign events. Email already real (`email_tool`, Resend) | both | ⏳ (email ✅) |
+| **B4** | Crew M3–M5 | Proactive (scheduled campaign/reports), event-driven (SMB signup → onboarding flow; end-customer msg → support triage), flow library | `solo-founder-crew` | ⏳ (= M3/M4/M5) |
+| **B5** | Compliance + ops | GDPR for **real** end-customer PII in passes; DPA with each SMB; billing (Stripe); hosting (VM + `postgresql://`); monitoring/budgets | `passly` | ⏳ |
+| **B6** | First SMB pilot | Onboard one real Greek SMB end-to-end; real passes + real campaign; iterate to product-market signal | both | ⏳ |
+
+Dependency shape: **B0 → B1 → B2** is the product spine and is independent of
+the crew. **B3/B4** are where `solo-founder-crew` plugs in (B4 *is* M3–M5 from
+the ladder above, now load-bearing rather than optional). **B5** is the
+go-live gate — real PII and money mean it cannot be skipped. **B6** is the
+proof. Nothing here is on the thesis critical path; the thesis evaluation
+stays sandbox/synthetic by design.
+
 ## Decisions log
 
+- **Thesis and Passly-live decoupled; thesis first (2026-06-27).** The
+  διπλωματική submits on the sandbox/synthetic demo (defensible as-is); the
+  Passly go-live track (B0–B6) runs post-submission so a fuzzy product goal
+  never threatens the hard 2026-08-31 deadline. "Live" is defined as a first
+  real Greek SMB onboarded.
 - **Bot identity = per-role webhooks (Option A), not N separate bots.** One
   token/process; roles post under their own name via channel webhooks. The
   HITL approval gate stays on the main bot (embed labels the role). N real
