@@ -12,7 +12,7 @@ of it. Most of it is post-thesis; the most it should touch the thesis is
 enriching the Ch.4 Passly demonstration (still sandbox/synthetic).
 
 **Two tracks, decoupled (decided 2026-06-27).** The thesis ships first —
-prose → submit by 2026-08-31 on the existing sandbox/synthetic Passly demo;
+prose → submit by 2026-09-30 on the existing sandbox/synthetic Passly demo;
 no live product gates the submission. *Then* the real goal: **Passly live, a
 first real Greek SMB onboarded.** The crew milestones below (M1–M6) are the
 *capability ladder*; the **Passly go-live track** (B0–B6, near the bottom) is
@@ -219,7 +219,7 @@ real wallet passes issued, a real campaign sent. It lives in a **separate
 `passly` repo** (not yet created) that consumes `solo-founder-crew` as a
 dependency; only B3/B4 touch this repo. Scope, scale, and honesty up front:
 this is a startup buildout measured in **months, not weeks**, and it starts in
-earnest *after* the thesis is submitted (2026-08-31). The framework spine is
+earnest *after* the thesis is submitted (2026-09-30). The framework spine is
 not rewritten — B4 walks through seams that are already open.
 
 | # | Phase | What it adds | Where | Status |
@@ -244,7 +244,7 @@ stays sandbox/synthetic by design.
 - **Thesis and Passly-live decoupled; thesis first (2026-06-27).** The
   διπλωματική submits on the sandbox/synthetic demo (defensible as-is); the
   Passly go-live track (B0–B6) runs post-submission so a fuzzy product goal
-  never threatens the hard 2026-08-31 deadline. "Live" is defined as a first
+  never threatens the hard 2026-09-30 deadline. "Live" is defined as a first
   real Greek SMB onboarded.
 - **Bot identity = per-role webhooks (Option A), not N separate bots.** One
   token/process; roles post under their own name via channel webhooks. The
