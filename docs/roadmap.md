@@ -262,13 +262,17 @@ It lives in a **new `passly` repo** that consumes this one as a dependency.
 **Architecture:** `Next.js UI → FastAPI → solo-founder-crew`. The FastAPI
 service imports the framework; the framework repo stays clean.
 
-| # | Phase | What | Gated by |
-|---|-------|------|----------|
-| **P0** | Scaffold | new `passly` repo; `web/` (Next.js) + `api/` (FastAPI importing `solo-founder-crew`); local dev runs | — |
-| **P1** | Pass issuance | pass template with shop branding → signed `.pkpass` → "Add to Apple Wallet" | Apple cert |
-| **P2** | Shop + designer UI | create shop (name/logo/colours/offer) + live pass preview — the "create a pass" flow | — |
-| **P3** | Crew + WebHITL | FastAPI drives the crew to draft pass copy + campaign; founder approves/edits in web (`WebHITL`, 2nd HITL adapter) | — |
-| **P4** | Demo polish | wire the real demo-shop data; end-to-end open → create shop → crew drafts → approve → real `.pkpass`; UI polish | shop data |
+| # | Phase | What | Status |
+|---|-------|------|--------|
+| **P0** | Scaffold | `passly` repo; Next.js `web/` + FastAPI `api/` (hexagonal, ports & adapters) importing `solo-founder-crew`; GitHub Actions CI | ✅ done (#1, #2) |
+| **P1** | Pass issuance | shop design → `.pkpass` (pass.json + icons + manifest + signature) behind a `PassSigner` port → "Add to Apple Wallet" | ✅ **cert-ready** (#5) — `FakeSigner` builds a valid bundle now; `AppleP12Signer` produces the real signature the moment the Dion Apple cert is configured |
+| **P2** | Shop + designer UI | create shop (name/logo/colours/offer) + live pass preview — the "create a pass" flow | ✅ done (#1) |
+| **P3** | Crew + WebHITL | FastAPI drives the crew to draft the campaign; founder approves/edits in web (`WebHITL`, the 2nd HITL adapter → §3.8 evidence) | ✅ done (#3, #4) |
+| **P4** | Demo polish | real demo-shop data; end-to-end open → create shop → crew drafts → approve → real `.pkpass`; UI polish | ⏳ needs the demo-shop data (+ Apple cert for a live-signed pass) |
+
+Progress note (2026-08-10): P0/P2/P3 shipped and P1 is cert-ready; the demo runs
+end-to-end today on `MockLLM` + an unsigned bundle. What remains for a full live
+demo: the Apple cert (real signature) and the demo shop's real details (P4).
 
 **Synergy with Ch.5 eval:** the demo's shop scenarios double as the eval
 harness scenarios — authored once, used for both Ch.4 (application) and Ch.5
