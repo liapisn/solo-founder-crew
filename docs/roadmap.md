@@ -265,14 +265,29 @@ service imports the framework; the framework repo stays clean.
 | # | Phase | What | Status |
 |---|-------|------|--------|
 | **P0** | Scaffold | `passly` repo; Next.js `web/` + FastAPI `api/` (hexagonal, ports & adapters) importing `solo-founder-crew`; GitHub Actions CI | ✅ done (#1, #2) |
-| **P1** | Pass issuance | shop design → `.pkpass` (pass.json + icons + manifest + signature) behind a `PassSigner` port → "Add to Apple Wallet" | ✅ **cert-ready** (#5) — `FakeSigner` builds a valid bundle now; `AppleP12Signer` produces the real signature the moment the Dion Apple cert is configured |
+| **P1** | Pass issuance | shop design → `.pkpass` (pass.json + icons + manifest + signature) behind a `PassIssuer` port → "Add to Apple Wallet" | ✅ **done** (#5, #8) — **real Apple-signed** `.pkpass`; the Dion cert is in place (`pass.com.passly`, team `AVN9H8BY3X`) and the signature verifies against Apple WWDR |
 | **P2** | Shop + designer UI | create shop (name/logo/colours/offer) + live pass preview — the "create a pass" flow | ✅ done (#1) |
 | **P3** | Crew + WebHITL | FastAPI drives the crew to draft the campaign; founder approves/edits in web (`WebHITL`, the 2nd HITL adapter → §3.8 evidence) | ✅ done (#3, #4) |
-| **P4** | Demo polish | real demo-shop data; end-to-end open → create shop → crew drafts → approve → real `.pkpass`; UI polish | ⏳ needs the demo-shop data (+ Apple cert for a live-signed pass) |
+| **P4** | Demo polish | real demo-shop data; end-to-end open → create shop → crew drafts → approve → real `.pkpass`; UI polish | ✅ done (#6) — **Chunky Cookie Bar** (real logo, with permission), end-to-end |
 
-Progress note (2026-08-10): P0/P2/P3 shipped and P1 is cert-ready; the demo runs
-end-to-end today on `MockLLM` + an unsigned bundle. What remains for a full live
-demo: the Apple cert (real signature) and the demo shop's real details (P4).
+Progress note (2026-08-11): **P0–P4 all shipped.** The demo runs end to end with
+**real Apple-signed passes** (Dion cert in place) and the AI crew, on the Chunky
+Cookie Bar shop. Beyond P4, the following also landed (all behind the hexagonal
+ports, framework-free CI green throughout):
+
+- **SQLite persistence** — shops + members survive restarts (`PASSLY_DB`).
+- **Member model** — each customer is a record with a unique pass serial; email
+  is the identity (one pass per email per shop, idempotent enrolment).
+- **Loyalty stamp counting** — member-identifying QR, a stamps goal, and
+  reward + auto-reset at the goal; a shop-side "+1 stamp" console.
+- **Pass re-download** — welcome-back join page + an emailed pass link on every
+  enrolment (Resend when a key is set, else a no-op sender; logged).
+- **Platform-neutral issuance** — a `PassIssuer` port + `ApplePassIssuer`; a
+  Google Wallet issuer is a drop-in sibling.
+
+Remaining for a real go-live (deferred): over-the-air pass updates (Apple APNs
+push + pass web service) so a customer's wallet card auto-refreshes its stamp
+count without re-downloading; a verified email domain; billing; real-PII GDPR.
 
 **Synergy with Ch.5 eval:** the demo's shop scenarios double as the eval
 harness scenarios — authored once, used for both Ch.4 (application) and Ch.5
