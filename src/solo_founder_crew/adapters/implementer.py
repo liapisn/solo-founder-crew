@@ -35,9 +35,10 @@ import os
 import shutil
 import subprocess
 import tempfile
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable, Protocol
+from typing import Protocol
 
 # ─── Result ─────────────────────────────────────────────────────────────────
 
@@ -291,7 +292,7 @@ class ClaudeCodeImplementer:
                 "worktree", "add", "-b", branch, str(tree), f"origin/{self.base_branch}"
             )
             return await self._run_in(tree, sandbox, proposal, branch)
-        except Exception as exc:  # surface, never crash the daemon
+        except Exception as exc:  # noqa: BLE001 — surface, never crash the daemon
             return ImplementResult(branch=branch, error=f"{type(exc).__name__}: {exc}")
         finally:
             self._cleanup(tree, sandbox, branch)
@@ -316,7 +317,7 @@ class ClaudeCodeImplementer:
             stdout, stderr = await asyncio.wait_for(
                 proc.communicate(), timeout=self.timeout_seconds
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             proc.kill()
             await proc.wait()
             return ImplementResult(

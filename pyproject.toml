@@ -41,7 +41,11 @@ dependencies = [
 dev = [
     "pytest>=8",
     "pytest-asyncio>=0.23",
-    "ruff>=0.6",
+    # Bounded deliberately. `ruff>=0.6` let CI float onto 0.16, whose expanded
+    # default rules flag ~90 pre-existing issues across the codebase — turning
+    # main red without a single source change (see the 2026-08-11 run). Lift
+    # this bound as a considered cleanup, not by drift.
+    "ruff>=0.15,<0.16",
 ]
 # Optional: the live Discord HITL surface (§3.8.6). Not needed for the
 # framework, the test suite, or the mock/stdin demos — install only to run
