@@ -78,13 +78,13 @@ async def _stub_tool(arg: str) -> str:
 PUBLISH_CHANNEL = "published"  # logical channel approved artifacts go to
 
 
-def build_tools(*, publisher=None) -> ToolRegistry:
+def build_tools(*, publisher=None, pr_tool=None) -> ToolRegistry:
     """Registry of publish tools.
 
     ``publisher`` is the real ``async (text) -> str`` action for
-    ``publisher_tool`` (e.g. post to Discord); if omitted, a stub is used so
-    the daemon/tests run without side effects. ``pr_tool`` is still a stub
-    (real GitHub-PR integration is an M2 follow-up).
+    ``publisher_tool`` (e.g. post to Discord); ``pr_tool`` is the engineering
+    role's equivalent. Either omitted falls back to a stub, so the daemon and
+    the test suite run with no side effects and no credentials.
     """
     tools = ToolRegistry()
     tools.register(
@@ -92,8 +92,42 @@ def build_tools(*, publisher=None) -> ToolRegistry:
         publisher or _stub_tool,
         escalates="final_approval_before_publish",
     )
-    tools.register("pr_tool", _stub_tool, escalates="merge_to_main")
+    tools.register("pr_tool", pr_tool or _stub_tool, escalates="merge_to_main")
     return tools
+
+
+def make_pr_tool(config: RuntimeConfig):
+    """The engineering role's ``pr_tool``, chosen by configuration.
+
+    Unset ``SFC_PR_REPO`` → ``None``, and ``build_tools`` falls back to the
+    stub. That keeps the daemon runnable out of the box: wiring a live coding
+    agent to a real repository has to be opted into deliberately, never
+    inherited by someone who just cloned the repo and started it.
+
+    With a repo configured, the engineering role gets
+    ``ImplementedPRTool``: the approved proposal is implemented by a coding
+    agent in a throwaway worktree and lands as a draft PR containing a real
+    diff (M2 Phase 3). ``merge_to_main`` is unaffected and stays the founder's.
+    """
+    if not config.dev_flow_enabled:
+        return None
+
+    from pathlib import Path
+
+    from solo_founder_crew.adapters.github_pr import make_implemented_pr_tool
+    from solo_founder_crew.adapters.implementer import ClaudeCodeImplementer
+
+    implementer = ClaudeCodeImplementer(
+        repo_path=Path(config.pr_repo_path).expanduser(),
+        worktree_root=Path(config.worktree_root).expanduser(),
+        base_branch=config.pr_base_branch,
+        timeout_seconds=config.implement_timeout_seconds,
+    )
+    return make_implemented_pr_tool(
+        implementer=implementer,
+        repo=config.pr_repo,
+        base_branch=config.pr_base_branch,
+    )
 
 
 def make_discord_publisher(client, guild_id: int):
@@ -178,6 +212,7 @@ def build_crew(
     llm=None,
     checkpointer=None,
     publisher=None,
+    pr_tool=None,
 ) -> tuple[Crew, DiscordHITL]:
     """Assemble the venture's crew + the Discord HITL surface.
 
@@ -188,7 +223,10 @@ def build_crew(
     """
     brief = VentureBrief.from_file(config.brief_path)
     roles = CrewGenerator(brief=brief).generate().roles
-    tools = build_tools(publisher=publisher)
+    tools = build_tools(
+        publisher=publisher,
+        pr_tool=pr_tool if pr_tool is not None else make_pr_tool(config),
+    )
     if llm is None:
         llm = RealLLM() if config.use_real_llm else PlaceholderLLM()
     hitl = DiscordHITL(

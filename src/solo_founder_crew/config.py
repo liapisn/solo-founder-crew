@@ -38,6 +38,20 @@ class RuntimeConfig:
     default_channel_id: str | None = None
     auto_create_channels: bool = True
 
+    # ── Dev Flow (M2 Phase 3) ────────────────────────────────────────────
+    # An empty `pr_repo` leaves the engineering role on the stub pr_tool.
+    # Pointing a live coding agent at a real repository is opt-in, never
+    # something inherited by cloning the repo and starting the daemon.
+    pr_repo: str = ""
+    pr_repo_path: str = ""
+    pr_base_branch: str = "main"
+    worktree_root: str = "./data/worktrees"
+    implement_timeout_seconds: float = 900.0
+
+    @property
+    def dev_flow_enabled(self) -> bool:
+        return bool(self.pr_repo and self.pr_repo_path)
+
     @property
     def use_real_llm(self) -> bool:
         return self.model == "real"
@@ -111,4 +125,19 @@ def load_runtime_config(
         channel_map=channels,
         default_channel_id=str(default_channel) if default_channel else None,
         auto_create_channels=auto_create,
+        pr_repo=env.get("SFC_PR_REPO") or crew.get("pr_repo") or "",
+        pr_repo_path=env.get("SFC_PR_REPO_PATH") or crew.get("pr_repo_path") or "",
+        pr_base_branch=(
+            env.get("SFC_PR_BASE_BRANCH") or crew.get("pr_base_branch") or "main"
+        ),
+        worktree_root=(
+            env.get("SFC_WORKTREE_ROOT")
+            or crew.get("worktree_root")
+            or "./data/worktrees"
+        ),
+        implement_timeout_seconds=float(
+            env.get("SFC_IMPLEMENT_TIMEOUT")
+            or crew.get("implement_timeout_seconds")
+            or 900.0
+        ),
     )

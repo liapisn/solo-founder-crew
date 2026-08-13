@@ -54,6 +54,8 @@ extension, not required for the gate semantics.
 
 ## What is wired up in this repo
 
+0. **The engineering role writes the code** — see "The agent writes the code"
+   below; `pr_tool` opens a draft PR containing a real diff.
 1. **`.github/workflows/ci.yml`** — runs ruff + pytest on every push and PR.
 2. **`.github/workflows/pr-review-notify.yml`** — when CI succeeds on a PR,
    posts the PR (title, author, branch, diffstat, link) to Discord with
@@ -79,3 +81,57 @@ reuses `DiscordHITL` directly but needs an always-on hosted bot and a token
 with merge rights. It is the natural next step once there is somewhere to host
 the bot; the framework side (the merge gate as a `HITLRequest`) is already in
 place.
+
+## The agent writes the code (M2 Phase 3)
+
+Phase 2 shipped a `pr_tool` that committed the *proposal* as a markdown file:
+the change the founder reviewed was a design note, not code. That was a tooling
+limit, not a decision-rights one — `open_pull_request` has always been in the
+engineering role's `can` list.
+
+Phase 3 closes it. On approval, `ImplementedPRTool` hands the proposal to an
+`Implementer`:
+
+```
+Implementer (Protocol)
+├── ClaudeCodeImplementer   headless `claude -p` in a throwaway git worktree,
+│                           then commit + push from outside the agent
+└── FakeImplementer         deterministic — what CI and the suite use
+```
+
+Three outcomes, and only one of them opens a PR:
+
+| Outcome | Result |
+|---------|--------|
+| Diff touches a dependency manifest or a migration | **No PR.** `dependency_change` / `schema_or_data_migration` are in `must_escalate`, so the founder is told what needs separate approval. The branch is still pushed, so the work is not lost. |
+| Agent changed nothing | **No PR.** |
+| Clean change | **Draft PR** carrying the real diff, the approved proposal as its body, and the run's turns / wall-clock / cost. |
+
+Escalations are detected from the files the agent actually changed, not from
+what the prompt asked for: the decision-rights model is checked against the
+artefact rather than trusted to the system prompt.
+
+### Isolation
+
+The worktree is created from `origin/<base>` under `SFC_WORKTREE_ROOT`, so the
+founder's working tree is never touched and an in-flight run cannot collide
+with local edits. It also carries no gitignored files, which is why the agent
+never sees `api/.env` or the credentials in it.
+
+The agent runs with full bash (`--permission-mode bypassPermissions`) and a
+real `HOME`, so it *can* read the user's home directory and reach the network.
+What it cannot do is push or merge: its environment is built from an allowlist
+that excludes every repository and venture credential, `gh` is pointed at an
+empty config directory, and git's global/system config is blanked so no
+credential helper is reachable. The adapter pushes afterwards, outside the
+agent. Every result lands as a reviewable diff, and `merge_to_main` stays the
+founder's.
+
+The Claude Code CLI exposes no turn cap, so `SFC_IMPLEMENT_TIMEOUT`
+(wall-clock) is the only bound on a run.
+
+### Turning it on
+
+Set both `SFC_PR_REPO` and `SFC_PR_REPO_PATH` (see `.env.example`). With either
+missing the daemon keeps the stub `pr_tool`, so a fresh clone never points a
+coding agent at a real repository by accident.
