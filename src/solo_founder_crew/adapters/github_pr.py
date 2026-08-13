@@ -45,6 +45,7 @@ from __future__ import annotations
 import base64
 import os
 import re
+import secrets
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
@@ -369,3 +370,132 @@ def make_github_pr_tool(
         )
     resolved_base = base_branch or os.getenv("SFC_PR_BASE_BRANCH", "main")
     return GitHubPRTool(repo=resolved_repo, base_branch=resolved_base, api=api)
+
+
+# ─── M2 Phase 3: a PR containing a real diff ────────────────────────────────
+
+
+@dataclass
+class ImplementedPRTool:
+    """``pr_tool`` that ships code rather than a proposal document.
+
+    Composes an ``Implementer`` (which turns the approved proposal into a
+    pushed branch) with the same ``GitHubAPI`` the proposal tool uses. Only
+    ``open_pull_request`` is needed here — ``git push`` already created the
+    branch and its commit, so ``create_branch`` and ``commit_file`` fall away.
+
+    Three outcomes, and only one of them opens a pull request:
+
+    - **Escalation required** — the diff touched a dependency manifest or a
+      migration, both in the engineering role's ``must_escalate`` list. No PR;
+      the founder is told what needs separate approval. The branch is still
+      pushed, so the work is not lost and stays reviewable.
+    - **Nothing changed** — the agent ran and produced no diff. No PR.
+    - **Clean change** — a draft PR from the pushed branch.
+
+    Draft, always: a draft PR cannot be auto-merged, so this tool still cannot
+    ship. ``merge_to_main`` remains the founder's, exactly as before.
+    """
+
+    implementer: Any  # Implementer Protocol (structural; avoids a hard import)
+    repo: str
+    base_branch: str = "main"
+    api: GitHubAPI | None = None
+    branch_prefix: str = "engineering/"
+
+    def __post_init__(self) -> None:
+        if "/" not in self.repo.strip("/"):
+            raise RuntimeError(f"repo must look like 'owner/name' (got {self.repo!r}).")
+        if self.api is None:
+            self.api = RealGitHubAPI()
+
+    def _branch_for(self, title: str) -> str:
+        """Unique per run. Unlike the proposal tool — where a deterministic
+        name usefully collides to surface duplicate work — an implementation
+        run must never reuse a branch, or a retry after a failure would abort
+        at ``git worktree add``."""
+        return f"{self.branch_prefix}{_slugify(title)}-{secrets.token_hex(3)}"
+
+    async def __call__(self, artifact: str) -> str:
+        title = _derive_title(artifact)
+        result = await self.implementer.implement(
+            artifact, branch=self._branch_for(title)
+        )
+
+        if result.error:
+            return f"Implementation failed: {result.error}"
+        if result.is_empty:
+            return (
+                "The engineering agent ran but changed nothing, so no pull "
+                "request was opened. The proposal may already be implemented, "
+                "or it may need to be more specific."
+            )
+        if result.escalations:
+            actions = ", ".join(result.escalations)
+            files = ", ".join(result.files_changed[:10])
+            return (
+                f"Escalation required ({actions}) before this can become a pull "
+                f"request. The work is pushed to `{result.branch}` for review. "
+                f"Files: {files}"
+            )
+
+        api = self.api
+        assert api is not None  # set in __post_init__
+        return api.open_pull_request(
+            self.repo,
+            head=result.branch,
+            base=self.base_branch,
+            title=title,
+            body=_pr_body(artifact, result),
+            draft=True,
+        )
+
+
+def _pr_body(artifact: str, result: Any) -> str:
+    """The approved proposal, plus what the run actually cost.
+
+    The telemetry block is deliberate: it makes each PR carry its own
+    case-study record (turns, wall-clock, spend) rather than requiring a
+    separate log to reconstruct what the crew did.
+    """
+    return "\n".join(
+        [
+            artifact.strip(),
+            "",
+            "---",
+            "",
+            "### Implementation",
+            "",
+            "```",
+            result.diffstat.strip() or "(no diffstat)",
+            "```",
+            "",
+            f"Agent run: {result.num_turns} turns · "
+            f"{result.duration_ms / 1000:.0f}s · ${result.cost_usd:.4f}",
+            "",
+            "_Drafted and implemented by the solo-founder-crew engineering role. "
+            "Opened as a draft: merging remains the founder's decision._",
+        ]
+    )
+
+
+def make_implemented_pr_tool(
+    *,
+    implementer: Any,
+    repo: str | None = None,
+    base_branch: str | None = None,
+    api: GitHubAPI | None = None,
+) -> ImplementedPRTool:
+    """Factory mirroring ``make_github_pr_tool``, reading the same env vars."""
+    resolved_repo = repo or os.getenv("SFC_PR_REPO", "")
+    if not resolved_repo:
+        raise RuntimeError(
+            "make_implemented_pr_tool requires repo (argument or SFC_PR_REPO). "
+            "Example: 'liapisn/passly'."
+        )
+    return ImplementedPRTool(
+        implementer=implementer,
+        repo=resolved_repo,
+        base_branch=base_branch or os.getenv("SFC_PR_BASE_BRANCH", "main"),
+        api=api,
+    )
