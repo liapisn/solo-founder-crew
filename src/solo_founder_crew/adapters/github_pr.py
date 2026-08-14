@@ -402,6 +402,7 @@ class ImplementedPRTool:
     base_branch: str = "main"
     api: GitHubAPI | None = None
     branch_prefix: str = "engineering/"
+    sink: Any = None  # CrewEventSink — activity log; None disables reporting
 
     def __post_init__(self) -> None:
         if "/" not in self.repo.strip("/"):
@@ -416,23 +417,63 @@ class ImplementedPRTool:
         at ``git worktree add``."""
         return f"{self.branch_prefix}{_slugify(title)}-{secrets.token_hex(3)}"
 
-    async def __call__(self, artifact: str) -> str:
-        title = _derive_title(artifact)
-        result = await self.implementer.implement(
-            artifact, branch=self._branch_for(title)
+    async def _report(self, kind: str, summary: str, detail: str = "") -> None:
+        """Best-effort activity log. A failure here must not affect the run."""
+        if self.sink is None:
+            return
+        from solo_founder_crew.events import CrewEvent
+
+        await self.sink.emit(
+            CrewEvent(kind=kind, role="engineering", summary=summary, detail=detail)
         )
 
+    async def __call__(self, artifact: str) -> str:
+        from solo_founder_crew.events import (
+            ERROR,
+            ESCALATION,
+            IMPLEMENTED,
+            IMPLEMENTING,
+            PR_OPENED,
+        )
+
+        title = _derive_title(artifact)
+        branch = self._branch_for(title)
+        await self._report(
+            IMPLEMENTING,
+            f"implementing *{title}*",
+            f"branch `{branch}` — a coding agent is working in a worktree.",
+        )
+        result = await self.implementer.implement(artifact, branch=branch)
+
         if result.error:
+            await self._report(
+                ERROR, "implementation failed", f"```\n{result.error}\n```"
+            )
             return f"Implementation failed: {result.error}"
         if result.is_empty:
+            await self._report(
+                IMPLEMENTED, "the agent changed nothing — no pull request opened"
+            )
             return (
                 "The engineering agent ran but changed nothing, so no pull "
                 "request was opened. The proposal may already be implemented, "
                 "or it may need to be more specific."
             )
+        await self._report(
+            IMPLEMENTED,
+            f"{len(result.files_changed)} file(s) changed",
+            f"```\n{result.diffstat.strip()}\n```\n"
+            f"{result.num_turns} turns · {result.duration_ms / 1000:.0f}s · "
+            f"${result.cost_usd:.4f}",
+        )
         if result.escalations:
             actions = ", ".join(result.escalations)
             files = ", ".join(result.files_changed[:10])
+            await self._report(
+                ESCALATION,
+                f"needs your approval: **{actions}**",
+                f"Pushed to `{result.branch}` — no PR opened until you say so.",
+            )
             return (
                 f"Escalation required ({actions}) before this can become a pull "
                 f"request. The work is pushed to `{result.branch}` for review. "
@@ -441,7 +482,7 @@ class ImplementedPRTool:
 
         api = self.api
         assert api is not None  # set in __post_init__
-        return api.open_pull_request(
+        url = api.open_pull_request(
             self.repo,
             head=result.branch,
             base=self.base_branch,
@@ -449,6 +490,8 @@ class ImplementedPRTool:
             body=_pr_body(artifact, result),
             draft=True,
         )
+        await self._report(PR_OPENED, f"opened a draft PR — {title}", url)
+        return url
 
 
 def _pr_body(artifact: str, result: Any) -> str:
@@ -485,6 +528,7 @@ def make_implemented_pr_tool(
     repo: str | None = None,
     base_branch: str | None = None,
     api: GitHubAPI | None = None,
+    sink: Any = None,
 ) -> ImplementedPRTool:
     """Factory mirroring ``make_github_pr_tool``, reading the same env vars."""
     resolved_repo = repo or os.getenv("SFC_PR_REPO", "")
@@ -498,4 +542,5 @@ def make_implemented_pr_tool(
         repo=resolved_repo,
         base_branch=base_branch or os.getenv("SFC_PR_BASE_BRANCH", "main"),
         api=api,
+        sink=sink,
     )
