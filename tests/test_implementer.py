@@ -293,6 +293,14 @@ def _run(*args, cwd):
     subprocess.run(args, cwd=str(cwd), check=True, capture_output=True)
 
 
+def _git_out(*args, cwd) -> str:
+    """Read-only git query. Defined at module level so async tests do not call
+    a blocking process API inline (ruff ASYNC221)."""
+    return subprocess.run(
+        ["git", *args], cwd=str(cwd), capture_output=True, text=True, check=False
+    ).stdout
+
+
 @pytest.fixture
 def target_repo(tmp_path):
     """A clone with a local bare origin, so pushes work without a network."""
@@ -361,16 +369,12 @@ async def test_worktree_is_created_outside_the_target_repo(target_repo, tmp_path
     assert result.num_turns == 3 and result.cost_usd == 0.05
 
     # Pushed to the real origin.
-    branches = subprocess.run(
-        ["git", "branch"], cwd=str(origin), capture_output=True, text=True
-    ).stdout
+    branches = _git_out("branch", cwd=origin)
     assert "engineering/add-file" in branches
 
     # No pollution of the target repository, and no leaked worktree.
     assert not (work / "data").exists(), "worktree was created inside the repo"
-    listed = subprocess.run(
-        ["git", "worktree", "list"], cwd=str(work), capture_output=True, text=True
-    ).stdout
+    listed = _git_out("worktree", "list", cwd=work)
     assert "sfc-tree-" not in listed, "worktree left registered"
     assert list((elsewhere / "data/worktrees").glob("sfc-tree-*")) == []
 
@@ -389,7 +393,5 @@ async def test_an_agent_that_writes_nothing_pushes_nothing(target_repo, tmp_path
     result = await impl.implement("Do nothing", branch="engineering/noop")
 
     assert result.is_empty and not result.pushed and not result.ok
-    branches = subprocess.run(
-        ["git", "branch"], cwd=str(origin), capture_output=True, text=True
-    ).stdout
+    branches = _git_out("branch", cwd=origin)
     assert "engineering/noop" not in branches
