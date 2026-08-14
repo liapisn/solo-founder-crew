@@ -86,7 +86,15 @@ async def test_fake_reports_a_pushed_branch_and_derived_escalations():
     assert result.pushed is True
     assert result.ok
     assert result.escalations == (DEPENDENCY_CHANGE,)
-    assert impl.calls == [{"proposal": "Add Google Wallet support", "branch": "eng/gw"}]
+    # `existing` defaults to False — a proposal cuts a new branch from the
+    # base; only a CI fix continues one (see test_ci_fix.py).
+    assert impl.calls == [
+        {
+            "proposal": "Add Google Wallet support",
+            "branch": "eng/gw",
+            "existing": "False",
+        }
+    ]
 
 
 async def test_an_agent_that_changed_nothing_is_empty_not_ok():
