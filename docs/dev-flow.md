@@ -135,3 +135,61 @@ The Claude Code CLI exposes no turn cap, so `SFC_IMPLEMENT_TIMEOUT`
 Set both `SFC_PR_REPO` and `SFC_PR_REPO_PATH` (see `.env.example`). With either
 missing the daemon keeps the stub `pr_tool`, so a fresh clone never points a
 coding agent at a real repository by accident.
+
+## When CI goes red (M2 Phase 4)
+
+Phase 3 ended at the push. Nothing in the crew observed what CI then said, and
+`pr-review-notify.yml` only spoke on success — so a red build was *silent*,
+indistinguishable from one still running. The agent could not learn it had
+shipped something broken, and neither could the founder.
+
+The loop closes in two halves, and the seam between them is deliberate:
+
+```
+CI fails
+   │
+   ├─ pr-review-notify.yml  ──▶  #crew-logs: ❌ which job, which step, /fix <pr>
+   │                                   │
+   │                          the founder decides           ◀── the retry bound
+   │                                   │
+   └─ /fix 22  ──▶  CIFixFlow  ──▶  Implementer(existing=True)  ──▶  same branch
+                         │                                             │
+                    reads the failing job's log            PR updates, CI re-runs
+```
+
+**The founder is the retry bound.** There is no polling loop, no automatic
+re-iteration and no `max_attempts` to tune. Each attempt costs one human
+decision, which is the cheapest available guard against an agent burning spend
+against a failure it cannot fix — a flaky fetch, or something already broken on
+`main`. It also keeps the framework's claim honest: the crew acts, the founder
+decides.
+
+### What `/fix` does
+
+1. Reads the PR (`ChecksAPI`, a read-only three-method Protocol — the PR tool
+   writes, this reads, neither carries the other's surface).
+2. Finds the failed Actions jobs on the head commit and pulls each log, tail
+   first and capped: the error is at the end and a whole Actions log will not
+   fit in a prompt.
+3. Hands that report to the same `Implementer`, with `existing=True` — the
+   worktree starts at `origin/<pr branch>` instead of the base, so the commit
+   lands on the branch the pull request already points at and CI re-runs
+   against it.
+
+Four refusals, before any agent is spawned:
+
+| Case | Why |
+|------|-----|
+| PR closed or merged | No branch left in play. |
+| Head branch is not the crew's (`engineering/`) | A mistyped number must not point a coding agent at hand-written work. |
+| No failed job on the head commit | CI is green, or still running. |
+| Agent changed nothing | Reported as the flake case, not as a fix. |
+
+The agent's brief for a fix is not the proposal brief: it is told to keep the
+branch's behaviour, and that deleting or skipping a failing test is not a fix.
+An agent asked only to make CI pass can always satisfy that by reverting the
+work.
+
+Escalations are unchanged — `detect_escalations` still inspects what the fix
+actually touched, so a "fix" that reaches for a new dependency stops and asks.
+The PR stays a draft. `merge_to_main` is still yours.

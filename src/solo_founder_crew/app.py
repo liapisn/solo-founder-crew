@@ -120,22 +120,48 @@ def make_pr_tool(config: RuntimeConfig, *, sink=None):
     if not config.dev_flow_enabled:
         return None
 
+    from solo_founder_crew.adapters.github_pr import make_implemented_pr_tool
+
+    return make_implemented_pr_tool(
+        implementer=make_implementer(config),
+        repo=config.pr_repo,
+        base_branch=config.pr_base_branch,
+        sink=sink,
+    )
+
+
+def make_implementer(config: RuntimeConfig):
+    """The coding agent, configured once and shared by both flows that use it.
+
+    ``pr_tool`` writes new work on a fresh branch; ``/fix`` continues an
+    existing one. Same agent, same worktree isolation, same timeout — the only
+    difference is where the branch starts.
+    """
     from pathlib import Path
 
-    from solo_founder_crew.adapters.github_pr import make_implemented_pr_tool
     from solo_founder_crew.adapters.implementer import ClaudeCodeImplementer
 
-    implementer = ClaudeCodeImplementer(
+    return ClaudeCodeImplementer(
         repo_path=Path(config.pr_repo_path).expanduser(),
         worktree_root=Path(config.worktree_root).expanduser(),
         base_branch=config.pr_base_branch,
         timeout_seconds=config.implement_timeout_seconds,
     )
-    return make_implemented_pr_tool(
-        implementer=implementer,
-        repo=config.pr_repo,
-        base_branch=config.pr_base_branch,
-        sink=sink,
+
+
+def make_ci_fix(config: RuntimeConfig, *, sink=None):
+    """The ``/fix`` flow, or ``None`` when the Dev Flow is off.
+
+    Gated on the same config as ``pr_tool``: without a repository to point at,
+    there is no red CI for the crew to be sent at.
+    """
+    if not config.dev_flow_enabled:
+        return None
+
+    from solo_founder_crew.adapters.ci_fix import make_ci_fix_flow
+
+    return make_ci_fix_flow(
+        implementer=make_implementer(config), repo=config.pr_repo, sink=sink
     )
 
 
@@ -535,6 +561,9 @@ async def run(config: RuntimeConfig) -> None:
             sink=sink,
         )
         transport.bind(hitl.submit_response)
+        # The `/fix` flow. Built here rather than inside the command so a
+        # misconfigured Dev Flow surfaces at startup, not on first use.
+        ci_fix = make_ci_fix(config, sink=sink)
         runs: dict[str, dict] = {}  # thread_id -> {role, task, status}
         role_webhooks: dict = {}  # logical -> discord.Webhook (per-role identity)
         # Operational metadata for restart-durability. Lives next to the
@@ -685,6 +714,75 @@ async def run(config: RuntimeConfig) -> None:
                         )
                     )
                     await _announce_outcome(logical, f"error: {e}", revisions)
+
+            asyncio.create_task(_go())
+
+        @tree.command(
+            name="fix",
+            description="Send the engineering role at a red CI run on one of its PRs",
+        )
+        @app_commands.describe(pr="Pull request number, e.g. 22")
+        async def fix(interaction, pr: int):  # noqa: ANN001
+            if ci_fix is None:
+                await interaction.response.send_message(
+                    "The Dev Flow is off — set `SFC_PR_REPO` and "
+                    "`SFC_PR_REPO_PATH` to enable `/fix`.",
+                    ephemeral=True,
+                )
+                return
+            # Deliberately not a RunRecord: `/fix` is a direct tool call, not a
+            # checkpointed Author Flow, so there is no graph state for the
+            # restart-respawn path to resume. It still shows up in `/status`.
+            thread_id = f"fix-{interaction.id}"
+            runs[thread_id] = {
+                "role": "engineering",
+                "task": f"fix red CI on PR #{pr}",
+                "status": "running",
+            }
+            await interaction.response.send_message(
+                f"▶ engineering is reading PR #{pr}'s failing job — progress in "
+                f"<#{hitl.channel_for(LOG_CHANNEL)}>."
+                if hitl.channel_for(LOG_CHANNEL)
+                else f"▶ engineering is reading PR #{pr}'s failing job.",
+                ephemeral=True,
+            )
+
+            async def _go() -> None:
+                await sink.emit(
+                    CrewEvent(
+                        kind=RUN_STARTED,
+                        role="engineering",
+                        thread_id=thread_id,
+                        summary=f"`/fix {pr}` — sent at a red CI run",
+                    )
+                )
+                try:
+                    summary = await ci_fix(pr)
+                    runs[thread_id]["status"] = "done"
+                    kind = RUN_FINISHED
+                except Exception as e:  # don't crash the daemon, but be loud
+                    import traceback
+
+                    print(f"✗ /fix failed for PR #{pr}:")
+                    traceback.print_exc()
+                    runs[thread_id]["status"] = f"error: {e}"
+                    summary = f"The fix attempt failed: {type(e).__name__}: {e}"
+                    kind = ERROR
+                # The outcome goes to the log channel first: an agent run can
+                # take the better part of the interaction token's 15-minute
+                # life, so the ephemeral follow-up is the copy that may not
+                # arrive, not the one the founder has to rely on.
+                await sink.emit(
+                    CrewEvent(
+                        kind=kind,
+                        role="engineering",
+                        thread_id=thread_id,
+                        summary=f"`/fix {pr}` finished",
+                        detail=summary,
+                    )
+                )
+                with contextlib.suppress(Exception):
+                    await interaction.followup.send(summary, ephemeral=True)
 
             asyncio.create_task(_go())
 

@@ -32,6 +32,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import secrets
 import shutil
 import subprocess
 import tempfile
@@ -77,9 +78,17 @@ class ImplementResult:
 
 
 class Implementer(Protocol):
-    """Turns an approved proposal into a pushed branch."""
+    """Turns an approved proposal into a pushed branch.
 
-    async def implement(self, proposal: str, *, branch: str) -> ImplementResult: ...
+    ``existing=True`` means *continue* the named branch rather than cut it from
+    the base: the worktree starts at ``origin/<branch>`` and the new commit
+    lands on top. That is what a CI fix needs — the failing work is already on
+    that branch, and the pull request pointing at it must update in place.
+    """
+
+    async def implement(
+        self, proposal: str, *, branch: str, existing: bool = False
+    ) -> ImplementResult: ...
 
 
 # ─── Escalation detection ───────────────────────────────────────────────────
@@ -158,8 +167,12 @@ class FakeImplementer:
     cost_usd: float = 0.0
     calls: list[dict[str, str]] = field(default_factory=list)
 
-    async def implement(self, proposal: str, *, branch: str) -> ImplementResult:
-        self.calls.append({"proposal": proposal, "branch": branch})
+    async def implement(
+        self, proposal: str, *, branch: str, existing: bool = False
+    ) -> ImplementResult:
+        self.calls.append(
+            {"proposal": proposal, "branch": branch, "existing": str(existing)}
+        )
         if self.error:
             return ImplementResult(branch=branch, error=self.error)
         return ImplementResult(
@@ -274,19 +287,50 @@ class ClaudeCodeImplementer:
         return env
 
     @staticmethod
-    def _prompt(proposal: str) -> str:
+    def _prompt(proposal: str, *, existing: bool = False) -> str:
+        """The agent's brief. Two framings, because the two jobs differ.
+
+        Implementing an approved proposal starts from the base branch and adds
+        the change. Fixing a red build starts from a branch that already
+        carries the change and must *keep* it — an agent told only "make CI
+        pass" can satisfy that by reverting the work, which is the one outcome
+        nobody wants.
+        """
+        shared = (
+            "- Match the surrounding code's style, naming and comment density.\n"
+            "- Run the project's tests and linter, and leave them passing.\n"
+            "- Do NOT commit, push, or create branches — the harness does that.\n"
+            "- If the change requires a new dependency or a database migration, "
+            "make it anyway but say so clearly in your final message: those "
+            "require separate founder approval.\n"
+        )
+        if existing:
+            return (
+                "You are the engineering role of a solo founder's AI crew. This "
+                "branch already carries your earlier change, and its pull "
+                "request has a FAILING CI run. The founder has asked you to fix "
+                "it.\n\n"
+                "Rules:\n"
+                "- Diagnose the failure from the report below, then make the "
+                "smallest change that turns CI green.\n"
+                "- Do NOT revert or weaken the change this branch exists to "
+                "make. Keep its behaviour and keep its tests meaningful — "
+                "deleting or skipping a failing test is not a fix.\n"
+                "- If the failure is not caused by this branch (a flake, a "
+                "network timeout, a problem already present on the base "
+                "branch), change nothing and say so in your final message.\n"
+                f"{shared}\n"
+                "FAILING CI REPORT\n"
+                "-----------------\n"
+                f"{proposal.strip()}\n"
+            )
         return (
             "You are the engineering role of a solo founder's AI crew. The "
             "founder has already reviewed and APPROVED the proposal below. "
             "Implement it in this repository.\n\n"
             "Rules:\n"
             "- Make the smallest change that fully implements the proposal.\n"
-            "- Match the surrounding code's style, naming and comment density.\n"
-            "- Run the project's tests and linter, and leave them passing.\n"
-            "- Do NOT commit, push, or create branches — the harness does that.\n"
-            "- If the change requires a new dependency or a database migration, "
-            "make it anyway but say so clearly in your final message: those "
-            "require separate founder approval.\n\n"
+            f"{shared}\n"
             "APPROVED PROPOSAL\n"
             "-----------------\n"
             f"{proposal.strip()}\n"
@@ -294,31 +338,47 @@ class ClaudeCodeImplementer:
 
     # ── the port ────────────────────────────────────────────────────────
 
-    async def implement(self, proposal: str, *, branch: str) -> ImplementResult:
+    async def implement(
+        self, proposal: str, *, branch: str, existing: bool = False
+    ) -> ImplementResult:
         self.worktree_root.mkdir(parents=True, exist_ok=True)
         sandbox = Path(tempfile.mkdtemp(prefix="sfc-sandbox-", dir=str(self.worktree_root)))
         tree = Path(tempfile.mkdtemp(prefix="sfc-tree-", dir=str(self.worktree_root)))
         # mkdtemp created it; git worktree add wants to create it itself.
         tree.rmdir()
 
+        # Continue an existing branch, or cut a new one from the base. The
+        # local branch name is only ever a handle on the worktree — the push
+        # below names the remote ref explicitly — so a continuation gets a
+        # throwaway name rather than colliding with any local checkout of the
+        # branch it is continuing.
+        start_ref = branch if existing else self.base_branch
+        local_branch = f"sfc-fix-{secrets.token_hex(4)}" if existing else branch
+
         try:
-            self._git_ok("fetch", "origin", self.base_branch)
+            self._git_ok("fetch", "origin", start_ref)
             self._git_ok(
-                "worktree", "add", "-b", branch, str(tree), f"origin/{self.base_branch}"
+                "worktree", "add", "-b", local_branch, str(tree), f"origin/{start_ref}"
             )
-            return await self._run_in(tree, sandbox, proposal, branch)
+            return await self._run_in(tree, sandbox, proposal, branch, existing=existing)
         except Exception as exc:  # noqa: BLE001 — surface, never crash the daemon
             return ImplementResult(branch=branch, error=f"{type(exc).__name__}: {exc}")
         finally:
-            self._cleanup(tree, sandbox, branch)
+            self._cleanup(tree, sandbox, local_branch)
 
     async def _run_in(
-        self, tree: Path, sandbox: Path, proposal: str, branch: str
+        self,
+        tree: Path,
+        sandbox: Path,
+        proposal: str,
+        branch: str,
+        *,
+        existing: bool = False,
     ) -> ImplementResult:
         proc = await asyncio.create_subprocess_exec(
             self.claude_bin,
             "-p",
-            self._prompt(proposal),
+            self._prompt(proposal, existing=existing),
             "--permission-mode",
             "bypassPermissions",
             "--output-format",
@@ -365,13 +425,16 @@ class ClaudeCodeImplementer:
             "user.email=crew@localhost",
             "commit",
             "-m",
-            _commit_message(proposal),
+            _commit_message(proposal, existing=existing),
             cwd=tree,
         )
         diffstat = self._git_ok("diff", "--stat", "HEAD~1", "HEAD", cwd=tree).strip()
         # Push from the adapter, in the normal environment — the agent never
-        # held a credential that could do this.
-        self._git_ok("push", "-u", "origin", branch, cwd=tree)
+        # held a credential that could do this. The refspec is explicit because
+        # a continuation's local branch is a throwaway name, and a fast-forward
+        # push is the only kind wanted either way: no force, so a branch that
+        # moved under us fails loudly instead of discarding someone's commit.
+        self._git_ok("push", "origin", f"HEAD:refs/heads/{branch}", cwd=tree)
 
         return ImplementResult(
             branch=branch,
@@ -423,7 +486,9 @@ def _telemetry_fields(t: dict) -> dict:
     }
 
 
-def _commit_message(proposal: str) -> str:
+def _commit_message(proposal: str, *, existing: bool = False) -> str:
+    if existing:
+        return "fix(ci): address the failing checks on this branch"
     for line in proposal.splitlines():
         s = line.strip().lstrip("#").strip()
         if s:
