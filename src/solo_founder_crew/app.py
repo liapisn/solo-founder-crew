@@ -39,8 +39,16 @@ from solo_founder_crew import (
     VentureBrief,
     load_dotenv,
 )
+from solo_founder_crew.adapters.discord_events import LOG_CHANNEL, make_discord_event_sink
 from solo_founder_crew.adapters.discord_hitl import DiscordHITL
 from solo_founder_crew.config import RuntimeConfig, load_runtime_config
+from solo_founder_crew.events import (
+    ERROR,
+    RUN_FINISHED,
+    RUN_STARTED,
+    CrewEvent,
+    LoggingHITL,
+)
 from solo_founder_crew.runs_registry import RunRecord, RunsRegistry
 
 # ─── LLM for the daemon ────────────────────────────────────────────────────────
@@ -96,7 +104,7 @@ def build_tools(*, publisher=None, pr_tool=None) -> ToolRegistry:
     return tools
 
 
-def make_pr_tool(config: RuntimeConfig):
+def make_pr_tool(config: RuntimeConfig, *, sink=None):
     """The engineering role's ``pr_tool``, chosen by configuration.
 
     Unset ``SFC_PR_REPO`` → ``None``, and ``build_tools`` falls back to the
@@ -127,6 +135,7 @@ def make_pr_tool(config: RuntimeConfig):
         implementer=implementer,
         repo=config.pr_repo,
         base_branch=config.pr_base_branch,
+        sink=sink,
     )
 
 
@@ -213,6 +222,7 @@ def build_crew(
     checkpointer=None,
     publisher=None,
     pr_tool=None,
+    sink=None,
 ) -> tuple[Crew, DiscordHITL]:
     """Assemble the venture's crew + the Discord HITL surface.
 
@@ -234,11 +244,14 @@ def build_crew(
         channel_map=config.channel_map,
         default_channel_id=config.default_channel_id,
     )
+    # Report gates and decisions to the activity log without touching the
+    # contract itself — LoggingHITL is a decorator over any HITL surface.
+    gated = LoggingHITL(inner=hitl, sink=sink) if sink is not None else hitl
     crew = Crew(
         brief=brief,
         roles=roles,
         llm=llm,
-        hitl=hitl,
+        hitl=gated,
         tools=tools,
         checkpointer=checkpointer,
     )
@@ -440,8 +453,9 @@ async def ensure_channels(client, config: RuntimeConfig, crew, hitl) -> dict:
     category = None
     created: list[str] = []
     webhook_denied = False
-    # #published is where approved artifacts land (the publisher tool posts here).
-    for logical in [*channels_for(crew.roles), PUBLISH_CHANNEL]:
+    # #published is where approved artifacts land (the publisher tool posts
+    # here); #crew-logs carries the activity feed.
+    for logical in [*channels_for(crew.roles), PUBLISH_CHANNEL, LOG_CHANNEL]:
         # Resolve the channel: explicit binding → existing by name → create.
         channel = None
         if hitl.is_mapped(logical):
@@ -509,8 +523,16 @@ async def run(config: RuntimeConfig) -> None:
 
     async with open_checkpointer(config.checkpointer_url) as checkpointer:
         publisher = make_discord_publisher(client, config.guild_id)
+        # The activity log. Inert until ensure_channels binds #crew-logs on
+        # connect, so nothing depends on the channel existing.
+        sink = make_discord_event_sink(client, None)
         crew, hitl = build_crew(
-            config, transport=transport, checkpointer=checkpointer, publisher=publisher
+            config,
+            transport=transport,
+            checkpointer=checkpointer,
+            publisher=publisher,
+            pr_tool=make_pr_tool(config, sink=sink),
+            sink=sink,
         )
         transport.bind(hitl.submit_response)
         runs: dict[str, dict] = {}  # thread_id -> {role, task, status}
@@ -612,6 +634,15 @@ async def run(config: RuntimeConfig) -> None:
 
             async def _go() -> None:
                 chosen = crew.role(role)
+                await sink.emit(
+                    CrewEvent(
+                        kind=RUN_STARTED,
+                        role=role,
+                        thread_id=thread_id,
+                        summary="started a run",
+                        detail=f"> {task}",
+                    )
+                )
                 try:
                     result = await crew.author_flow(
                         task_description=task,
@@ -622,6 +653,20 @@ async def run(config: RuntimeConfig) -> None:
                     )
                     runs[thread_id]["status"] = result.status
                     registry.set_status(thread_id, result.status)
+                    # The publish tool's own message (PR url, escalation notice,
+                    # "changed nothing") is the most useful thing to surface.
+                    publish_result = str(
+                        (result.final_state or {}).get("publish_result", "") or ""
+                    )
+                    await sink.emit(
+                        CrewEvent(
+                            kind=RUN_FINISHED,
+                            role=role,
+                            thread_id=thread_id,
+                            summary=f"run finished — **{result.status}**",
+                            detail=publish_result,
+                        )
+                    )
                     await _announce_outcome(logical, result.status, revisions)
                 except Exception as e:  # don't crash the daemon, but be loud
                     import traceback
@@ -630,6 +675,15 @@ async def run(config: RuntimeConfig) -> None:
                     traceback.print_exc()
                     runs[thread_id]["status"] = f"error: {e}"
                     registry.set_status(thread_id, f"error: {e}")
+                    await sink.emit(
+                        CrewEvent(
+                            kind=ERROR,
+                            role=role,
+                            thread_id=thread_id,
+                            summary="run failed",
+                            detail=f"```\n{type(e).__name__}: {e}\n```",
+                        )
+                    )
                     await _announce_outcome(logical, f"error: {e}", revisions)
 
             asyncio.create_task(_go())
@@ -725,6 +779,11 @@ async def run(config: RuntimeConfig) -> None:
                     return
                 print(f"· on_ready: synced {len(synced)} commands; ensuring channels…")
                 role_webhooks.update(await ensure_channels(client, config, crew, hitl))
+                sink.channel_id = hitl.channel_for(LOG_CHANNEL)
+                if sink.channel_id:
+                    print(f"· activity log → #{LOG_CHANNEL}")
+                else:
+                    print(f"⚠ no #{LOG_CHANNEL} channel bound — activity log is off.")
                 print(
                     f"Crew online as {client.user} · venture={crew.brief.name} · "
                     f"roles={role_names} · {len(synced)} commands on guild "

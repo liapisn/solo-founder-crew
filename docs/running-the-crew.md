@@ -119,3 +119,55 @@ generic. Per-role gate labels are a small runtime refinement, not M1.
 
 The daemon connects to Discord over an **outbound** WebSocket, so it works
 behind home NAT with no port-forwarding — and the exact same on a VM.
+
+## The activity log (`#crew-logs`)
+
+The gate tells you when a *decision* is needed. It says nothing about anything
+either side of it. `#crew-logs` carries that: which run started, that a draft is
+waiting, what you decided, that a coding agent is working, what it cost, and
+whether a pull request opened.
+
+The channel is auto-created alongside the role channels and `#published`, so
+there is nothing to configure. Without it the daemon runs exactly as before —
+the sink is inert when no channel is bound.
+
+A full engineering run reads like this:
+
+```
+▶️ engineering · started a run  run-1537
+> In the passly wallet pass the Member field is empty — show the member's name
+
+⏸️ engineering · waiting for your review (turn 1)  run-1537
+
+🫵 engineering · you chose approve  run-1537
+
+🛠️ engineering · implementing "Show the member's name on the wallet pass"
+branch engineering/show-the-member-s-name-… — a coding agent is working in a worktree.
+
+📦 engineering · 2 file(s) changed
+11 turns · 94s · $0.8700
+
+🔀 engineering · opened a draft PR
+https://github.com/liapisn/passly/pull/9
+
+✅ engineering · run finished — shipped  run-1537
+```
+
+Escalations and failures appear here too, which is the point: a run that dies
+inside the coding agent used to be visible only in the daemon's stdout and the
+checkpointer.
+
+### How it is wired
+
+`CrewEventSink` is a Protocol with the usual pair — `DiscordEventSink` for real
+use, `RecordingEventSink` for tests — and `NullEventSink` as the default so
+nothing is required.
+
+Gate and decision events come from `LoggingHITL`, a **decorator** around any
+`HITLContract`. Observability was not allowed to become a reason to edit the
+contract itself (Ch.3 §3.8), and wrapping means any surface — Discord, web,
+stdin — gains the same log for free.
+
+For Ch.4, these events *are* the case-study measurements: gate latency,
+revision counts, approve/reject ratios, escalation frequency and cost per
+change, captured while the venture is built rather than reconstructed later.
