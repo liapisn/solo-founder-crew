@@ -222,6 +222,21 @@ class ClaudeCodeImplementer:
     timeout_seconds: float = 900.0
     claude_bin: str = "claude"
 
+    def __post_init__(self) -> None:
+        """Resolve both paths to absolute, up front.
+
+        These are relative in normal configuration (`../passly`,
+        `./data/worktrees`) and relative paths break here in a way that is not
+        obvious: `mkdtemp` resolves them against the *daemon's* working
+        directory, while every git call runs with ``cwd=repo_path``, so
+        `git worktree add ./data/worktrees/x` creates the tree inside the
+        target repository instead. The agent is then spawned with a cwd that
+        does not exist, and the run dies with a bare FileNotFoundError after
+        polluting the repo with an orphaned worktree.
+        """
+        self.repo_path = Path(self.repo_path).expanduser().resolve()
+        self.worktree_root = Path(self.worktree_root).expanduser().resolve()
+
     # ── plumbing ────────────────────────────────────────────────────────
 
     def _git(self, *args: str, cwd: Path | None = None) -> subprocess.CompletedProcess:
@@ -368,8 +383,9 @@ class ClaudeCodeImplementer:
         )
 
     def _cleanup(self, tree: Path, sandbox: Path, branch: str) -> None:
-        if tree.exists():
-            self._git("worktree", "remove", "--force", str(tree))
+        # Unconditional: `_git` never raises, and a tree that git still has
+        # registered but that is missing on disk must be pruned either way.
+        self._git("worktree", "remove", "--force", str(tree))
         self._git("worktree", "prune")
         # The branch lives on the remote now; the local ref is disposable.
         self._git("branch", "-D", branch)

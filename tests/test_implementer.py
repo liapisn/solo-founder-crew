@@ -16,7 +16,10 @@ Pins six behaviours:
 """
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
+
+import pytest
 
 from solo_founder_crew.adapters.implementer import (
     DEPENDENCY_CHANGE,
@@ -275,3 +278,118 @@ async def test_build_tools_falls_back_to_a_stub_pr_tool():
         return f"opened:{text}"
 
     assert await build_tools(pr_tool=spy)._tools["pr_tool"]("x") == "opened:x"
+
+
+# ─── ClaudeCodeImplementer: worktree lifecycle ──────────────────────────────
+# Exercised with a stub `claude` binary — real git, real worktrees, no agent
+# and no network. This is what caught the relative-path bug: the daemon
+# configures ../passly and ./data/worktrees, and those resolved differently
+# for mkdtemp (daemon cwd) than for git (cwd=repo_path), so the worktree was
+# created *inside the target repository* and the agent got a cwd that did not
+# exist.
+
+
+def _run(*args, cwd):
+    subprocess.run(args, cwd=str(cwd), check=True, capture_output=True)
+
+
+@pytest.fixture
+def target_repo(tmp_path):
+    """A clone with a local bare origin, so pushes work without a network."""
+    origin, work = tmp_path / "origin.git", tmp_path / "work"
+    subprocess.run(["git", "init", "-q", "--bare", str(origin)], check=True)
+    subprocess.run(["git", "clone", "-q", str(origin), str(work)], check=True)
+    _run("git", "config", "user.email", "t@t.t", cwd=work)
+    _run("git", "config", "user.name", "test", cwd=work)
+    (work / "README.md").write_text("# target\n")
+    _run("git", "add", "-A", cwd=work)
+    _run("git", "commit", "-qm", "initial", cwd=work)
+    _run("git", "branch", "-M", "main", cwd=work)
+    _run("git", "push", "-q", "-u", "origin", "main", cwd=work)
+    return origin, work
+
+
+def _stub_claude(tmp_path, *, body: str) -> str:
+    """A fake `claude` that edits the tree, then prints the result JSON."""
+    script = tmp_path / "claude-stub"
+    script.write_text(
+        "#!/bin/sh\n"
+        f"{body}\n"
+        'echo \'{"is_error":false,"num_turns":3,"duration_ms":1234,'
+        '"total_cost_usd":0.05,"session_id":"stub-session","result":"done"}\'\n'
+    )
+    script.chmod(0o755)
+    return str(script)
+
+
+def test_relative_paths_are_resolved_at_construction(tmp_path, monkeypatch):
+    """The regression: ../passly and ./data/worktrees must not stay relative."""
+    from solo_founder_crew.adapters.implementer import ClaudeCodeImplementer
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "repo").mkdir()
+
+    impl = ClaudeCodeImplementer(
+        repo_path=Path("repo"), worktree_root=Path("./data/worktrees")
+    )
+
+    assert impl.repo_path.is_absolute()
+    assert impl.worktree_root.is_absolute()
+    assert impl.worktree_root == (tmp_path / "data/worktrees").resolve()
+
+
+async def test_worktree_is_created_outside_the_target_repo(target_repo, tmp_path, monkeypatch):
+    """The worktree must land under worktree_root, never inside repo_path —
+    and the target repo must be left with no trace of the run."""
+    from solo_founder_crew.adapters.implementer import ClaudeCodeImplementer
+
+    origin, work = target_repo
+    elsewhere = tmp_path / "daemon-cwd"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)  # daemon cwd != repo_path, as in production
+
+    impl = ClaudeCodeImplementer(
+        repo_path=work,
+        worktree_root=Path("./data/worktrees"),  # relative, as configured
+        claude_bin=_stub_claude(tmp_path, body="echo hi > added.txt"),
+        timeout_seconds=60,
+    )
+    result = await impl.implement("Add a file", branch="engineering/add-file")
+
+    assert result.error == "", result.error
+    assert result.pushed and result.files_changed == ("added.txt",)
+    assert result.num_turns == 3 and result.cost_usd == 0.05
+
+    # Pushed to the real origin.
+    branches = subprocess.run(
+        ["git", "branch"], cwd=str(origin), capture_output=True, text=True
+    ).stdout
+    assert "engineering/add-file" in branches
+
+    # No pollution of the target repository, and no leaked worktree.
+    assert not (work / "data").exists(), "worktree was created inside the repo"
+    listed = subprocess.run(
+        ["git", "worktree", "list"], cwd=str(work), capture_output=True, text=True
+    ).stdout
+    assert "sfc-tree-" not in listed, "worktree left registered"
+    assert list((elsewhere / "data/worktrees").glob("sfc-tree-*")) == []
+
+
+async def test_an_agent_that_writes_nothing_pushes_nothing(target_repo, tmp_path, monkeypatch):
+    from solo_founder_crew.adapters.implementer import ClaudeCodeImplementer
+
+    origin, work = target_repo
+    monkeypatch.chdir(tmp_path)
+    impl = ClaudeCodeImplementer(
+        repo_path=work,
+        worktree_root=Path("./wt"),
+        claude_bin=_stub_claude(tmp_path, body="true"),
+        timeout_seconds=60,
+    )
+    result = await impl.implement("Do nothing", branch="engineering/noop")
+
+    assert result.is_empty and not result.pushed and not result.ok
+    branches = subprocess.run(
+        ["git", "branch"], cwd=str(origin), capture_output=True, text=True
+    ).stdout
+    assert "engineering/noop" not in branches
