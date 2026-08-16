@@ -244,6 +244,167 @@ async def test_resume_on_terminal_thread_returns_state_no_side_effects(
     assert second.approved_artifact == DRAFT_V1
 
 
+# ─── (3b) A node that raised is retried, not abandoned ──────────────────────
+
+
+class _FlakyPublisher:
+    """A publish tool that fails the first ``fail_times`` calls.
+
+    Stands in for the real ways the publish step dies mid-run: Discord
+    5xx, a GitHub timeout, the coding agent crashing. ``calls`` counts
+    every attempt so a test can prove the artefact was published once
+    and only once.
+    """
+
+    def __init__(self, fail_times: int = 1) -> None:
+        self.fail_times = fail_times
+        self.calls = 0
+
+    async def __call__(self, text: str) -> str:
+        self.calls += 1
+        if self.calls <= self.fail_times:
+            raise RuntimeError("publish exploded")
+        return f"shipped:{len(text)}"
+
+
+def _crew_with_publisher(
+    *, brief: VentureBrief, role: Role, publisher, checkpointer, hitl, responses
+) -> Crew:
+    registry = ToolRegistry()
+    registry.register(
+        "publisher_tool", publisher, escalates="final_approval_before_publish"
+    )
+    return Crew(
+        brief=brief,
+        roles=[role],
+        llm=MockLLM(responses=responses),
+        hitl=hitl,
+        tools=registry,
+        checkpointer=checkpointer,
+    )
+
+
+async def test_resume_retries_a_node_that_raised(
+    brief: VentureBrief, marketing_role: Role
+) -> None:
+    """The founder approved, publishing blew up, the run died.
+
+    Regression: ``resume`` used to read the checkpointed state instead of
+    re-invoking, so the queued ``publish`` node never re-ran. The run came
+    back ``status="unknown"``, nothing was published, and the approval the
+    founder had already given was spent for nothing. Now the failed node
+    is retried and the run reaches its real terminal state.
+    """
+    checkpointer = MemorySaver()
+    thread_id = "run-resume-004"
+    publisher = _FlakyPublisher(fail_times=1)
+
+    crew_alpha = _crew_with_publisher(
+        brief=brief,
+        role=marketing_role,
+        publisher=publisher,
+        checkpointer=checkpointer,
+        hitl=ScriptedHITL([FounderDecision(action="approve")]),
+        responses=[DRAFT_V1],
+    )
+    with pytest.raises(RuntimeError, match="publish exploded"):
+        await crew_alpha.author_flow(task_description="x", thread_id=thread_id)
+    assert publisher.calls == 1
+
+    # The retry: same checkpointer, and a HITL that would fail the test if
+    # consulted — the founder is not asked to approve the same draft twice.
+    class _ExplodingHITL:
+        async def review(self, request):  # noqa: ANN001
+            raise AssertionError("a retry must not re-ask the founder")
+
+    crew_beta = _crew_with_publisher(
+        brief=brief,
+        role=marketing_role,
+        publisher=publisher,
+        checkpointer=checkpointer,
+        hitl=_ExplodingHITL(),
+        responses=[],  # nor re-draft: the LLM queue is empty
+    )
+    result = await crew_beta.resume(thread_id, role="marketing")
+
+    assert result.status == "shipped"
+    assert result.approved_artifact == DRAFT_V1
+    assert publisher.calls == 2  # the failed attempt, then the one that stuck
+
+
+async def test_resume_of_a_still_broken_run_raises(
+    brief: VentureBrief, marketing_role: Role
+) -> None:
+    """If the retry fails too, the error surfaces.
+
+    A second failure must be as loud as the first — the daemon reports it
+    and the founder decides whether to retry again. Silently returning a
+    non-terminal state is what made the original bug invisible.
+    """
+    checkpointer = MemorySaver()
+    thread_id = "run-resume-005"
+    publisher = _FlakyPublisher(fail_times=99)
+
+    crew = _crew_with_publisher(
+        brief=brief,
+        role=marketing_role,
+        publisher=publisher,
+        checkpointer=checkpointer,
+        hitl=ScriptedHITL([FounderDecision(action="approve")]),
+        responses=[DRAFT_V1],
+    )
+    with pytest.raises(RuntimeError, match="publish exploded"):
+        await crew.author_flow(task_description="x", thread_id=thread_id)
+
+    with pytest.raises(RuntimeError, match="publish exploded"):
+        await crew.resume(thread_id, role="marketing")
+    assert publisher.calls == 2
+
+
+async def test_resume_at_a_gate_does_not_re_invoke(
+    brief: VentureBrief, marketing_role: Role
+) -> None:
+    """The retry path must not disturb the normal one.
+
+    A run paused at a gate has pending work too (the ``hitl`` node), so
+    the check has to distinguish "awaiting the founder" from "stopped on
+    an exception". If it did not, resuming a parked run would re-post the
+    gate before the founder had answered the first one.
+    """
+    checkpointer = MemorySaver()
+    thread_id = "run-resume-006"
+    publisher = _FlakyPublisher(fail_times=0)
+
+    parking_hitl = _NeverCompletingHITL()
+    crew_alpha = _crew_with_publisher(
+        brief=brief,
+        role=marketing_role,
+        publisher=publisher,
+        checkpointer=checkpointer,
+        hitl=parking_hitl,
+        responses=[DRAFT_V1],
+    )
+    task = asyncio.create_task(
+        crew_alpha.author_flow(task_description="x", thread_id=thread_id)
+    )
+    await asyncio.wait_for(parking_hitl.entered.wait(), timeout=2.0)
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    crew_beta = _crew_with_publisher(
+        brief=brief,
+        role=marketing_role,
+        publisher=publisher,
+        checkpointer=checkpointer,
+        hitl=ScriptedHITL([FounderDecision(action="approve")]),
+        responses=[],  # an empty queue: re-drafting would raise here
+    )
+    result = await crew_beta.resume(thread_id, role="marketing")
+    assert result.status == "shipped"
+    assert result.approved_artifact == DRAFT_V1  # the original draft, not a new one
+
+
 # ─── (4) Unknown thread_id ──────────────────────────────────────────────────
 
 

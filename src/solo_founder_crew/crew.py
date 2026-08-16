@@ -197,12 +197,19 @@ class Crew:
         ``AsyncSqliteSaver`` or any other persistent saver) and the named
         ``thread_id`` to have state recorded in it.
 
-        Three outcomes:
+        Four outcomes:
 
         - **Paused at a HITL gate** — the normal case. ``resume`` drives
           the same interrupt loop as ``author_flow``, asking
           ``self.hitl`` for each decision, until the graph reaches a
           terminal node.
+        - **Stopped on a node that raised** — the run died mid-flight
+          (a publish tool timing out, an API 500, the coding agent
+          crashing). LangGraph leaves that node queued in the
+          checkpoint, so ``resume`` retries *it* — not the run — and
+          carries on. Decisions the founder already made are in the
+          checkpoint and are not asked again. See
+          ``_drive_interrupt_loop``.
         - **Already terminal** (status == "shipped" / "killed" /
           "exhausted") — returns the saved terminal state without
           calling the LLM, the HITL, or any tool. Safe to call
@@ -211,6 +218,13 @@ class Crew:
           caller (typically the daemon's startup hook) is expected to
           only call ``resume`` for thread ids it knows about from its
           run registry.
+
+        Retrying re-runs the failed node, so a tool that is not
+        idempotent can act twice if it failed *after* its side effect
+        landed. That is the deliberate trade: at-least-once beats
+        losing work the founder already approved. The daemon keeps the
+        retry behind an explicit ``/retry``, so each attempt costs one
+        human decision.
 
         Resuming uses the *same* graph the original run was paused
         inside; LangGraph's checkpointer round-trips the state. The
@@ -271,9 +285,21 @@ class Crew:
 
         - an ``AuthorFlowState`` dict — for a fresh ``author_flow`` run,
           the very first ``ainvoke`` starts the graph.
-        - ``None`` — for ``resume``: the graph is already paused at an
-          interrupt, so we read the pending interrupt directly without
-          re-invoking the graph from scratch.
+        - ``None`` — for ``resume``: the graph is already paused, so we
+          read its checkpointed state rather than re-invoking from
+          scratch. Two shapes of "paused" exist and they need opposite
+          treatment:
+
+          * **paused at an interrupt** — the pending task carries the
+            HITL payload. Read it; do not invoke, or the gate would be
+            re-posted before the founder has answered.
+          * **stopped on a node that raised** — LangGraph keeps that
+            node queued (``snapshot.next``) with the exception on the
+            task, and no interrupt is pending. Invoking with ``None``
+            retries exactly that node. Reading state instead is how a
+            crashed run used to come back as ``status="unknown"``:
+            nothing re-ran, and the approved artefact was never
+            published.
 
         After that first decision, the loop is identical for both
         callers: read the interrupt payload, ask the HITL contract,
@@ -288,9 +314,18 @@ class Crew:
             if first_iteration and next_input is None:
                 # Resume entry: the graph is already paused, so don't
                 # re-invoke from scratch. Drive directly from the
-                # existing checkpointed state.
+                # existing checkpointed state — unless what is pending is
+                # a node that raised rather than a gate awaiting the
+                # founder, in which case re-invoking with no input is
+                # precisely what retries it.
                 snapshot = await graph.compiled.aget_state(config)
-                final = dict(snapshot.values)
+                stalled = bool(snapshot.next) and (
+                    await self._pending_interrupt(graph.compiled, config) is None
+                )
+                if stalled:
+                    final = await graph.compiled.ainvoke(None, config=config)
+                else:
+                    final = dict(snapshot.values)
             else:
                 final = await graph.compiled.ainvoke(next_input, config=config)
             first_iteration = False

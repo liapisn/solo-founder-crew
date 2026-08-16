@@ -316,6 +316,94 @@ async def _mark_stale_gate(client, *, channel_id: str, message_id: str) -> None:
         )
 
 
+async def drive_resume(
+    *,
+    crew,
+    registry,
+    runs: dict,
+    record,
+    announce,
+    sink=None,
+) -> str:
+    """Drive one run from its checkpointed state to a terminal status.
+
+    Shared by the two callers that need it, because they need exactly the
+    same thing: the startup respawn (a run whose driver task died with the
+    process) and ``/retry`` (a run whose driver died on an exception). The
+    difference between those cases lives in the checkpoint, not here —
+    ``Crew.resume`` re-posts a gate if the run is parked at one, and
+    re-runs the failed node if it stopped on an exception.
+
+    Returns a one-line, founder-readable outcome. Never raises: both
+    callers are fire-and-forget tasks where an escaping exception is
+    either a silent log line or a dead ``on_ready``.
+    """
+    try:
+        chosen = crew.role(record.role)
+        result = await crew.resume(
+            thread_id=record.thread_id,
+            role=chosen,
+            publish_tool=publish_tool_for(chosen),
+        )
+        runs.setdefault(record.thread_id, {})["status"] = result.status
+        registry.set_status(record.thread_id, result.status)
+        if sink is not None:
+            await sink.emit(
+                CrewEvent(
+                    kind=RUN_FINISHED,
+                    role=record.role,
+                    thread_id=record.thread_id,
+                    summary=f"run resumed and finished — **{result.status}**",
+                    detail=str((result.final_state or {}).get("publish_result", "") or ""),
+                )
+            )
+        await announce(
+            record.logical_channel,
+            result.status,
+            record.revisions,
+            record.thread_id,
+        )
+        return f"Run {record.thread_id} finished: {result.status}."
+    except KeyError:
+        # The checkpointer no longer has state for this thread — the
+        # registry is stale. Drop the record so /status stops showing a
+        # phantom run.
+        print(
+            f"↻ Dropping stale registry entry {record.thread_id}: "
+            f"no matching checkpoint state."
+        )
+        runs.pop(record.thread_id, None)
+        registry.remove(record.thread_id)
+        return (
+            f"Run {record.thread_id} has no saved state left — dropped it. "
+            f"Start again with `/draft`."
+        )
+    except Exception as e:  # don't crash the daemon
+        import traceback
+
+        print(f"✗ resume ({record.role}) failed for thread {record.thread_id}:")
+        traceback.print_exc()
+        runs.setdefault(record.thread_id, {})["status"] = f"error: {e}"
+        registry.set_status(record.thread_id, f"error: {e}")
+        if sink is not None:
+            await sink.emit(
+                CrewEvent(
+                    kind=ERROR,
+                    role=record.role,
+                    thread_id=record.thread_id,
+                    summary="resume failed",
+                    detail=f"```\n{type(e).__name__}: {e}\n```",
+                )
+            )
+        await announce(
+            record.logical_channel,
+            f"error: {e}",
+            record.revisions,
+            record.thread_id,
+        )
+        return f"Resume failed: {type(e).__name__}: {e}"
+
+
 async def _respawn_pending_runs(
     *,
     registry,
@@ -323,33 +411,49 @@ async def _respawn_pending_runs(
     runs: dict,
     announce,
     client=None,
+    sink=None,
 ) -> None:
     """On startup, re-spawn driver tasks for runs that were in flight
     when the previous process died.
 
-    For each pending record in the registry:
+    Every record in the registry is first mirrored into the in-memory
+    ``runs`` dict, not only the pending ones: ``/status`` is where the
+    founder reads a failed run's id, and ``/retry`` is unusable without
+    it. A restart used to erase that from view entirely.
 
-    1. Mirror the metadata into the in-memory ``runs`` dict so ``/status``
-       can show it immediately.
+    Then, for each *pending* record:
+
+    1. Its ``runs`` entry is marked "running" again.
     2. If the record carries a ``latest_gate_*`` pair (post-M1.6
        registries do), edit the stale Discord message to say
        "🔄 Run resumed — see the latest gate above" and strip its
        buttons. The old buttons can no longer be served by this
        process, so this prevents the founder from clicking them
        and getting Discord's generic "interaction failed".
-    3. Spawn an ``asyncio`` task that calls ``crew.resume(thread_id,
-       role)``. That call re-builds the same graph, reads the paused
-       state from the checkpointer, and posts a *fresh* HITL gate
-       message (with the live buttons). The fresh gate gets a new
-       Future, and the click on its button resolves it normally.
+    3. Spawn an ``asyncio`` task that hands the record to
+       ``drive_resume``, which calls ``crew.resume(thread_id, role)``.
+       That call re-builds the same graph, reads the paused state from
+       the checkpointer, and posts a *fresh* HITL gate message (with
+       the live buttons). The fresh gate gets a new Future, and the
+       click on its button resolves it normally.
     4. On terminal status (or ``KeyError`` if the checkpointer no
        longer knows about the thread), update both the in-memory
        dict and the persistent registry, then announce the outcome
        in the role's channel.
 
+    Only ``running`` records are pending, so a run that died on an
+    exception is *not* picked up here — restarting the daemon must not
+    silently re-attempt an outbound action. That retry is the founder's
+    call, via ``/retry``, and goes through the same ``drive_resume``.
+
     The respawn is best-effort: a single bad record must not block
     the daemon from coming online for the rest of the crew.
     """
+    for rec in registry.all():
+        runs.setdefault(
+            rec.thread_id,
+            {"role": rec.role, "task": rec.task, "status": rec.status},
+        )
     pending = registry.pending()
     if not pending:
         return
@@ -378,34 +482,14 @@ async def _respawn_pending_runs(
         }
 
         async def _resume(rec=record) -> None:
-            try:
-                chosen = crew.role(rec.role)
-                result = await crew.resume(
-                    thread_id=rec.thread_id,
-                    role=chosen,
-                    publish_tool=publish_tool_for(chosen),
-                )
-                runs[rec.thread_id]["status"] = result.status
-                registry.set_status(rec.thread_id, result.status)
-                await announce(rec.logical_channel, result.status, rec.revisions)
-            except KeyError:
-                # Checkpointer no longer has state for this thread —
-                # registry is stale. Drop the record so /status stops
-                # showing a phantom run.
-                print(
-                    f"↻ Dropping stale registry entry {rec.thread_id}: "
-                    f"no matching checkpoint state."
-                )
-                runs.pop(rec.thread_id, None)
-                registry.remove(rec.thread_id)
-            except Exception as e:  # don't crash the daemon
-                import traceback
-
-                print(f"✗ resume ({rec.role}) failed for thread {rec.thread_id}:")
-                traceback.print_exc()
-                runs[rec.thread_id]["status"] = f"error: {e}"
-                registry.set_status(rec.thread_id, f"error: {e}")
-                await announce(rec.logical_channel, f"error: {e}", rec.revisions)
+            await drive_resume(
+                crew=crew,
+                registry=registry,
+                runs=runs,
+                record=rec,
+                announce=announce,
+                sink=sink,
+            )
 
         asyncio.create_task(_resume())
 
@@ -593,7 +677,9 @@ async def run(config: RuntimeConfig) -> None:
 
         role_names = [r.name for r in crew.roles]
 
-        async def _announce_outcome(logical: str, status: str, revisions: int) -> None:
+        async def _announce_outcome(
+            logical: str, status: str, revisions: int, thread_id: str | None = None
+        ) -> None:
             """Post a closing line to the role's channel when a flow ends, so
             the founder isn't left guessing (and the stale gate buttons aren't
             the last word)."""
@@ -609,6 +695,18 @@ async def run(config: RuntimeConfig) -> None:
                     f"more rounds)."
                 ),
             }.get(status, f"Run ended: {status}.")
+            if status.startswith("error:"):
+                # A crashed run is not a lost one: the draft and any decision
+                # you already made are in the checkpoint, and the step that
+                # died is still queued. Say so — the previous wording left
+                # the founder to assume their approval had evaporated.
+                cmd = f"`/retry run:{thread_id}`" if thread_id else "`/retry`"
+                text = (
+                    f"💥 The run hit an error and stopped:\n"
+                    f"```\n{status[7:].strip()[:600]}\n```"
+                    f"Nothing was lost — your draft and any decision you made are "
+                    f"saved. {cmd} re-runs just the step that failed."
+                )
             channel = client.get_channel(int(cid)) or await client.fetch_channel(int(cid))
             await channel.send(text)
 
@@ -696,7 +794,9 @@ async def run(config: RuntimeConfig) -> None:
                             detail=publish_result,
                         )
                     )
-                    await _announce_outcome(logical, result.status, revisions)
+                    await _announce_outcome(
+                        logical, result.status, revisions, thread_id
+                    )
                 except Exception as e:  # don't crash the daemon, but be loud
                     import traceback
 
@@ -713,7 +813,9 @@ async def run(config: RuntimeConfig) -> None:
                             detail=f"```\n{type(e).__name__}: {e}\n```",
                         )
                     )
-                    await _announce_outcome(logical, f"error: {e}", revisions)
+                    await _announce_outcome(
+                        logical, f"error: {e}", revisions, thread_id
+                    )
 
             asyncio.create_task(_go())
 
@@ -840,6 +942,56 @@ async def run(config: RuntimeConfig) -> None:
 
             asyncio.create_task(_go())
 
+        @tree.command(
+            name="retry",
+            description="Re-run the step a failed run died on (nothing is re-drafted)",
+        )
+        @app_commands.describe(run="Run id, as shown by /status")
+        async def retry(interaction, run: str):  # noqa: ANN001
+            record = registry.get(run)
+            if record is None:
+                known = [r.thread_id for r in registry.all() if not r.is_pending]
+                await interaction.response.send_message(
+                    f"No run {run!r} in the registry."
+                    + (f" Known: {', '.join(known[-5:])}." if known else ""),
+                    ephemeral=True,
+                )
+                return
+            if record.status in ("shipped", "killed", "exhausted"):
+                await interaction.response.send_message(
+                    f"Run {run} already ended: **{record.status}**. Nothing to "
+                    f"retry — start a new one with `/draft`.",
+                    ephemeral=True,
+                )
+                return
+            await interaction.response.send_message(
+                f"↻ Retrying {run} ({record.role}) — the founder decisions it "
+                f"already has are not asked again.",
+                ephemeral=True,
+            )
+
+            async def _go() -> None:
+                await sink.emit(
+                    CrewEvent(
+                        kind=RUN_STARTED,
+                        role=record.role,
+                        thread_id=run,
+                        summary="`/retry` — re-running the step that failed",
+                    )
+                )
+                outcome = await drive_resume(
+                    crew=crew,
+                    registry=registry,
+                    runs=runs,
+                    record=record,
+                    announce=_announce_outcome,
+                    sink=sink,
+                )
+                with contextlib.suppress(Exception):
+                    await interaction.followup.send(outcome, ephemeral=True)
+
+            asyncio.create_task(_go())
+
         @tree.command(description="Show in-flight runs and gates awaiting your tap")
         async def status(interaction):  # noqa: ANN001
             if not runs:
@@ -850,7 +1002,13 @@ async def run(config: RuntimeConfig) -> None:
             for tid, r in runs.items():
                 awaiting = any(p.startswith(tid) for p in pending)
                 flag = " ⏳ awaiting your tap" if awaiting else ""
-                lines.append(f"• {r['role']}: {r['status']} — {r['task'][:60]}{flag}")
+                # A failed run is retryable, so it has to show the id that
+                # `/retry` wants. Healthy runs stay uncluttered.
+                if str(r.get("status", "")).startswith("error:"):
+                    flag += f" · `/retry run:{tid}`"
+                lines.append(
+                    f"• {r['role']}: {r['status']} — {r.get('task', '')[:60]}{flag}"
+                )
             await interaction.response.send_message("\n".join(lines), ephemeral=True)
 
         @client.event
@@ -903,6 +1061,7 @@ async def run(config: RuntimeConfig) -> None:
                     runs=runs,
                     announce=_announce_outcome,
                     client=client,
+                    sink=sink,
                 )
                 print("· on_ready: startup complete.")
             except Exception:  # don't crash the daemon's event loop silently

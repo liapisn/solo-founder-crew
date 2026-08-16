@@ -207,3 +207,236 @@ async def test_open_checkpointer_sqlite(tmp_path) -> None:
         # wasn't enough to catch it.
         assert await cp.aget_tuple({"configurable": {"thread_id": "t"}}) is None
     assert db.exists()
+
+
+# ─── drive_resume: the shared path behind /retry and startup respawn ─────────
+#
+# A run that dies after the founder approved used to be unrecoverable: the
+# daemon logged `error: …` and the approved artefact was never published.
+# `drive_resume` is what brings it back, so the states it can end in are
+# worth pinning even though the slash command around it is not testable
+# without a gateway.
+
+
+class _StubCrew:
+    """Minimal stand-in for ``Crew``: one role, a scripted ``resume``."""
+
+    def __init__(self, role, outcome) -> None:
+        self._role = role
+        self._outcome = outcome  # an object to return, or an exception to raise
+        self.resumed: list[str] = []
+
+    def role(self, name: str):  # noqa: ANN201 - mirrors Crew.role
+        return self._role
+
+    async def resume(self, *, thread_id: str, role, publish_tool: str):  # noqa: ANN001
+        self.resumed.append(thread_id)
+        if isinstance(self._outcome, Exception):
+            raise self._outcome
+        return self._outcome
+
+
+class _Result:
+    def __init__(self, status: str, publish_result: str = "") -> None:
+        self.status = status
+        self.final_state = {"publish_result": publish_result}
+
+
+def _record(**overrides):  # noqa: ANN201
+    from solo_founder_crew.runs_registry import RunRecord
+
+    base = dict(
+        thread_id="run-1",
+        role="marketing",
+        task="Draft a teaser",
+        revisions=3,
+        logical_channel="marketing",
+        status="error: publish exploded",
+    )
+    base.update(overrides)
+    return RunRecord(**base)
+
+
+def _registry_with(tmp_path, record):  # noqa: ANN201
+    from solo_founder_crew.runs_registry import RunsRegistry
+
+    registry = RunsRegistry(tmp_path / "runs.json")
+    registry.put(record)
+    return registry
+
+
+async def test_drive_resume_completes_a_failed_run(tmp_path, brief) -> None:
+    """The happy retry: the run reaches a terminal status, and every
+    surface the founder can look at is updated to say so."""
+    from solo_founder_crew.app import drive_resume
+    from solo_founder_crew.events import RecordingEventSink
+
+    record = _record()
+    registry = _registry_with(tmp_path, record)
+    runs: dict = {}
+    announced: list[tuple] = []
+    sink = RecordingEventSink()
+
+    async def announce(*args) -> None:
+        announced.append(args)
+
+    outcome = await drive_resume(
+        crew=_StubCrew(make_marketing(brief), _Result("shipped", "published to #x")),
+        registry=registry,
+        runs=runs,
+        record=record,
+        announce=announce,
+        sink=sink,
+    )
+
+    assert "shipped" in outcome
+    assert registry.get("run-1").status == "shipped"
+    assert runs["run-1"]["status"] == "shipped"
+    # The announcement carries the thread id, which is what lets the role
+    # channel print a usable `/retry run:…` when things go the other way.
+    assert announced == [("marketing", "shipped", 3, "run-1")]
+    assert sink.kinds == ["run_finished"]
+
+
+async def test_drive_resume_keeps_a_run_that_fails_again(tmp_path, brief) -> None:
+    """A retry that fails is reported, not swallowed — and the record
+    survives, so the founder can retry once more after fixing the cause."""
+    from solo_founder_crew.app import drive_resume
+    from solo_founder_crew.events import RecordingEventSink
+
+    record = _record()
+    registry = _registry_with(tmp_path, record)
+    runs: dict = {}
+    announced: list[tuple] = []
+    sink = RecordingEventSink()
+
+    async def announce(*args) -> None:
+        announced.append(args)
+
+    outcome = await drive_resume(
+        crew=_StubCrew(make_marketing(brief), RuntimeError("still broken")),
+        registry=registry,
+        runs=runs,
+        record=record,
+        announce=announce,
+        sink=sink,
+    )
+
+    assert "still broken" in outcome
+    assert registry.get("run-1") is not None  # retryable again
+    assert registry.get("run-1").status.startswith("error:")
+    assert announced[0][1].startswith("error:")
+    assert sink.kinds == ["error"]
+
+
+async def test_drive_resume_drops_a_run_the_checkpointer_forgot(
+    tmp_path, brief
+) -> None:
+    """No saved state means there is nothing to retry — the record is a
+    phantom and is removed rather than left in `/status` forever."""
+    from solo_founder_crew.app import drive_resume
+
+    record = _record()
+    registry = _registry_with(tmp_path, record)
+    runs = {"run-1": {"role": "marketing", "task": "x", "status": "error: boom"}}
+
+    async def announce(*args) -> None:
+        raise AssertionError("a dropped run has no outcome to announce")
+
+    outcome = await drive_resume(
+        crew=_StubCrew(make_marketing(brief), KeyError("run-1")),
+        registry=registry,
+        runs=runs,
+        record=record,
+        announce=announce,
+        sink=None,
+    )
+
+    assert "no saved state" in outcome.lower()
+    assert registry.get("run-1") is None
+    assert "run-1" not in runs
+
+
+async def test_retry_publishes_a_run_that_died_after_approval(tmp_path) -> None:
+    """The whole reported failure, end to end on the daemon's own path.
+
+    A run is approved, the publish tool blows up, the driver dies. Before
+    the fix this was terminal: the founder's approval was consumed and the
+    artefact never left the process. Now `/retry`'s ``drive_resume`` picks
+    the run up from the checkpoint, re-runs *only* the publish step, and
+    the artefact ships without the founder being asked twice.
+    """
+    from langgraph.checkpoint.memory import MemorySaver
+
+    from solo_founder_crew.app import drive_resume
+    from solo_founder_crew.runs_registry import RunRecord, RunsRegistry
+
+    published: list[str] = []
+    fail_next = True
+
+    async def flaky_publisher(text: str) -> str:
+        nonlocal fail_next
+        if fail_next:
+            fail_next = False
+            raise RuntimeError("discord 503")
+        published.append(text)
+        return "published to #published"
+
+    transport = InMemoryTransport()
+    crew, hitl = build_crew(
+        _config(),
+        transport=transport,
+        llm=MockLLM(responses=["Launch copy for Passly."]),
+        checkpointer=MemorySaver(),
+        publisher=flaky_publisher,
+    )
+
+    async def tap_approve() -> None:
+        while not hitl.pending_request_ids():
+            await asyncio.sleep(0)
+        rid = hitl.pending_request_ids()[0]
+        hitl.submit_response(FounderResponse(request_id=rid, action="approve"))
+
+    marketing = crew.role("marketing")
+    with pytest.raises(RuntimeError, match="discord 503"):
+        await asyncio.gather(
+            crew.author_flow(
+                task_description="Draft a launch announcement.",
+                role=marketing,
+                publish_tool=publish_tool_for(marketing),
+                thread_id="run-boom",
+            ),
+            tap_approve(),
+        )
+    assert published == []  # nothing shipped, and the approval is spent
+
+    registry = RunsRegistry(tmp_path / "runs.json")
+    record = RunRecord(
+        thread_id="run-boom",
+        role="marketing",
+        task="Draft a launch announcement.",
+        revisions=3,
+        logical_channel="marketing",
+        status="error: discord 503",
+    )
+    registry.put(record)
+
+    gates_before = len(transport.posted)
+
+    async def announce(*args) -> None:
+        return None
+
+    outcome = await drive_resume(
+        crew=crew,
+        registry=registry,
+        runs={},
+        record=record,
+        announce=announce,
+        sink=None,
+    )
+
+    assert "shipped" in outcome
+    assert published == ["Launch copy for Passly."]
+    assert registry.get("run-boom").status == "shipped"
+    # The founder was not asked again: no second gate was posted.
+    assert len(transport.posted) == gates_before
