@@ -57,6 +57,42 @@ def test_role_factories_produce_expected_role(
     assert brief.voice.tone in role.system_prompt
 
 
+def test_every_role_declares_the_escalation_its_tools_gate_on(
+    brief: VentureBrief,
+) -> None:
+    """The library invariant: holding a gated tool without declaring its
+    action is a definition error.
+
+    Regression — product, customer_support, sales and finance all held
+    ``publisher_tool`` while declaring only domain escalations, so every
+    ``/draft`` with those roles raised ToolPermissionError in the publish
+    node: *after* the draft was written and the founder had approved it.
+    """
+    from solo_founder_crew.app import build_tools
+
+    tools = build_tools()
+    for name, factory in ROLE_LIBRARY.items():
+        role = factory(brief)
+        for tool_name in role.tools:
+            action = tools.escalating_action(tool_name)
+            if action is None:
+                continue
+            assert action in role.decision_rights.must_escalate, (
+                f"role {name!r} holds {tool_name!r} (escalates {action!r}) "
+                f"but does not declare it"
+            )
+
+
+def test_publishing_roles_state_the_publish_gate_in_their_prompt(
+    brief: VentureBrief,
+) -> None:
+    """The prompt text and the enforced rights must not drift apart —
+    the LLM is told the same contract the runtime checks."""
+    for factory in (make_product, make_customer_support, make_sales, make_finance):
+        role = factory(brief)
+        assert "final_approval_before_publish" in role.system_prompt
+
+
 def test_marketing_role_can_draft_and_revise(brief: VentureBrief) -> None:
     role = make_marketing(brief)
     assert role.may_perform("draft_content")
