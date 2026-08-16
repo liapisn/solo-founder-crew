@@ -101,7 +101,14 @@ tmux new -s crew '.venv/bin/python -m solo_founder_crew.app'
   message, so the channel stays clean.
 - **`/ask role:product question:"what's our roadmap?"`** — advisory; the role
   replies in its own channel under its own name.
-- **`/status`** — in-flight runs and which ones await your tap.
+- **`/status`** — in-flight runs and which ones await your tap. A run that
+  errored shows the `/retry` line you need for it.
+- **`/retry run:run-…`** — a run that died mid-flight (publish timed out, an
+  API 500, the coding agent crashed) stops on the step that failed and keeps
+  everything before it. `/retry` re-runs *that step only*: nothing is
+  re-drafted, and a decision you already made is not asked for again. Retrying
+  is deliberately manual — re-running an outbound action is at-least-once, so
+  it costs one tap rather than happening on its own at every restart.
 
 Note: the gate's displayed action label is currently the generic
 `final_approval_before_publish` even for the engineering role (whose true
