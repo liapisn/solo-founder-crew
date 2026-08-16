@@ -78,6 +78,16 @@ class ToolRegistry:
         if escalates is not None:
             self._escalates[name] = escalates
 
+    def escalating_action(self, name: str) -> str | None:
+        """The action a tool escalates on, or ``None`` if it is ungated.
+
+        Exposed so callers can check a Role's declaration *before* a run
+        starts rather than discovering the mismatch at invocation — by
+        which point the draft has been written and the founder has
+        already approved it. See ``Crew._preflight``.
+        """
+        return self._escalates.get(name)
+
     async def invoke(
         self,
         role: Role,

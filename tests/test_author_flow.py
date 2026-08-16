@@ -248,6 +248,43 @@ async def test_role_must_hold_publish_tool(
         await crew.author_flow(task_description="x")
 
 
+async def test_role_must_declare_the_tools_escalation(
+    brief: VentureBrief,
+    tool_registry: ToolRegistry,
+    approve_immediately_hitl: ScriptedHITL,
+) -> None:
+    """A role holding a gated tool it never declared is rejected up front.
+
+    Regression: the mismatch used to surface from ToolRegistry inside the
+    publish node — i.e. after the LLM had drafted, the founder had been
+    asked, and the founder had approved. The approval was consumed and the
+    artifact discarded. Fail before any of that happens.
+    """
+    from solo_founder_crew import DecisionRights
+
+    bad = Role(
+        name="product",
+        goal="x",
+        system_prompt="x",
+        decision_rights=DecisionRights(
+            can=("draft_content",),
+            must_escalate=("spec_finalisation",),  # no publish gate
+        ),
+        tools=("publisher_tool",),
+    )
+    crew = Crew(
+        brief=brief,
+        roles=[bad],
+        llm=MockLLM(responses=[DRAFT_V1]),
+        hitl=approve_immediately_hitl,
+        tools=tool_registry,
+    )
+    with pytest.raises(PermissionError, match="final_approval_before_publish"):
+        await crew.author_flow(task_description="x")
+    # …and nothing ran: no draft, no founder gate, no publish.
+    assert len(crew.trace) == 0
+
+
 # ─── Multi-role crew requires explicit selection ─────────────────────────────
 
 

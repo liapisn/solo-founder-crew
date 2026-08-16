@@ -349,6 +349,19 @@ class Crew:
                 f"Role {role.name!r} does not hold publish_tool "
                 f"{publish_tool!r} (tools={role.tools})"
             )
+        # The escalation contract, checked here rather than at invocation.
+        # ToolRegistry enforces it inside the publish node — which is *after*
+        # the draft was written and the founder approved it. A role that holds
+        # a gated tool without declaring its action is a definition error, so
+        # fail before the run starts and before the founder is asked.
+        action = self.tools.escalating_action(publish_tool)
+        if action is not None and action not in role.decision_rights.must_escalate:
+            raise PermissionError(
+                f"Role {role.name!r} holds publish_tool {publish_tool!r}, which "
+                f"escalates {action!r}, but does not declare it in "
+                f"decision_rights.must_escalate="
+                f"{role.decision_rights.must_escalate}"
+            )
 
     @staticmethod
     async def _pending_interrupt(

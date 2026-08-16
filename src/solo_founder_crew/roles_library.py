@@ -17,6 +17,15 @@ and returns a frozen ``Role`` whose system prompt references the
 brief's voice. This makes the Crew Generator's job mechanical: pick
 the factory, call it, hand the Role to the Crew.
 
+**Library invariant.** A role that holds an outbound tool must declare
+that tool's escalating action in ``must_escalate``. ``publisher_tool``
+escalates ``final_approval_before_publish`` and ``pr_tool`` escalates
+``merge_to_main`` (see ``app.build_tools``), so every publishing role
+below carries the publish gate *in addition to* its domain-specific
+escalations. Holding the tool without the declaration is a definition
+error: ``ToolRegistry.invoke`` refuses it, and ``Crew._preflight``
+catches it before a run starts.
+
 Adding a new role means: write a factory here, add a key to
 ``ROLE_LIBRARY``, and add a ``CrewRule`` in ``crew_generator.py``.
 """
@@ -130,7 +139,8 @@ def make_product(brief: VentureBrief) -> Role:
                 _constraints_block(brief),
                 "DECISION RIGHTS\n"
                 "  - May: draft_content, revise_content, propose_priority\n"
-                "  - Must escalate: spec_finalisation, roadmap_change, scope_addition",
+                "  - Must escalate: final_approval_before_publish, "
+                "spec_finalisation, roadmap_change, scope_addition",
                 "OPERATING RULES\n"
                 "  - Specs must include: user-visible behaviour, edge cases, success criteria.\n"
                 "  - Changelogs are user-facing: omit internal jargon.\n"
@@ -139,7 +149,12 @@ def make_product(brief: VentureBrief) -> Role:
         ),
         decision_rights=DecisionRights(
             can=("draft_content", "revise_content", "propose_priority"),
-            must_escalate=("spec_finalisation", "roadmap_change", "scope_addition"),
+            must_escalate=(
+                "final_approval_before_publish",
+                "spec_finalisation",
+                "roadmap_change",
+                "scope_addition",
+            ),
         ),
         tools=("publisher_tool",),
     )
@@ -160,7 +175,8 @@ def make_customer_support(brief: VentureBrief) -> Role:
                 _constraints_block(brief),
                 "DECISION RIGHTS\n"
                 "  - May: draft_content, revise_content, triage_ticket, request_clarification\n"
-                "  - Must escalate: refund_request, account_termination, legal_or_compliance_question",
+                "  - Must escalate: final_approval_before_publish, refund_request, "
+                "account_termination, legal_or_compliance_question",
                 "OPERATING RULES\n"
                 "  - Match the venture's tone — peer, not corporate.\n"
                 "  - Never make commitments outside the brief's listed value props.\n"
@@ -169,7 +185,12 @@ def make_customer_support(brief: VentureBrief) -> Role:
         ),
         decision_rights=DecisionRights(
             can=("draft_content", "revise_content", "triage_ticket", "request_clarification"),
-            must_escalate=("refund_request", "account_termination", "legal_or_compliance_question"),
+            must_escalate=(
+                "final_approval_before_publish",
+                "refund_request",
+                "account_termination",
+                "legal_or_compliance_question",
+            ),
         ),
         tools=("publisher_tool",),
     )
@@ -191,7 +212,8 @@ def make_sales(brief: VentureBrief) -> Role:
                 _constraints_block(brief),
                 "DECISION RIGHTS\n"
                 "  - May: draft_content, revise_content, qualify_lead\n"
-                "  - Must escalate: deal_close, contract_finalisation, custom_pricing",
+                "  - Must escalate: final_approval_before_publish, deal_close, "
+                "contract_finalisation, custom_pricing",
                 "OPERATING RULES\n"
                 "  - Lead qualification: match against the brief's customer segment and jobs-to-be-done.\n"
                 "  - Outbound copy must respect the brief's do/don't lists (no hype, no fake urgency).\n"
@@ -200,7 +222,12 @@ def make_sales(brief: VentureBrief) -> Role:
         ),
         decision_rights=DecisionRights(
             can=("draft_content", "revise_content", "qualify_lead"),
-            must_escalate=("deal_close", "contract_finalisation", "custom_pricing"),
+            must_escalate=(
+                "final_approval_before_publish",
+                "deal_close",
+                "contract_finalisation",
+                "custom_pricing",
+            ),
         ),
         tools=("publisher_tool",),
     )
@@ -221,7 +248,8 @@ def make_finance(brief: VentureBrief) -> Role:
                 _constraints_block(brief),
                 "DECISION RIGHTS\n"
                 "  - May: draft_content, revise_content, categorise_expense, summarise_period\n"
-                "  - Must escalate: payment_dispatch, refund_dispatch, transaction_above_threshold",
+                "  - Must escalate: final_approval_before_publish, payment_dispatch, "
+                "refund_dispatch, transaction_above_threshold",
                 "OPERATING RULES\n"
                 "  - Reports must be reproducible — list every input used.\n"
                 "  - Never dispatch money. The founder approves and then a tool dispatches.\n"
@@ -230,7 +258,12 @@ def make_finance(brief: VentureBrief) -> Role:
         ),
         decision_rights=DecisionRights(
             can=("draft_content", "revise_content", "categorise_expense", "summarise_period"),
-            must_escalate=("payment_dispatch", "refund_dispatch", "transaction_above_threshold"),
+            must_escalate=(
+                "final_approval_before_publish",
+                "payment_dispatch",
+                "refund_dispatch",
+                "transaction_above_threshold",
+            ),
         ),
         tools=("publisher_tool",),
     )
