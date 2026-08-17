@@ -130,6 +130,32 @@ founder's.
 The Claude Code CLI exposes no turn cap, so `SFC_IMPLEMENT_TIMEOUT`
 (wall-clock) is the only bound on a run.
 
+### Cost
+
+A run is a full agentic coding session, so the tier it runs at is the single
+biggest lever on what the crew costs. `claude -p` with no `--model` inherits
+whatever the founder's *interactive* CLI defaults to — and the child
+environment allowlist strips `ANTHROPIC_MODEL`, so the flag is the only way in.
+The adapter therefore names the tier explicitly:
+
+| Var | Default | Applies to |
+|-----|---------|-----------|
+| `SFC_IMPLEMENT_MODEL` | `sonnet` | writing an approved proposal |
+| `SFC_IMPLEMENT_EFFORT` | `high` | writing an approved proposal |
+| `SFC_FIX_MODEL` | `sonnet` | `/fix` on a red build |
+| `SFC_FIX_EFFORT` | `medium` | `/fix` on a red build |
+
+The two jobs are tiered separately because they are not the same size:
+implementing a proposal is open-ended work from a prose brief, while a CI fix
+is a named failure with a known smallest change that the founder can ask for
+repeatedly. `effort` matters at least as much as `model` — it governs thinking
+depth *and* how many tool calls a run makes.
+
+These are starting points, not findings. Every run already reports its turns,
+wall-clock and cost to `#crew-logs`, so move the defaults on that evidence:
+raise the tier if a diff comes back unusable, lower it if the same PR arrives
+either way.
+
 ### Turning it on
 
 Set both `SFC_PR_REPO` and `SFC_PR_REPO_PATH` (see `.env.example`). With either

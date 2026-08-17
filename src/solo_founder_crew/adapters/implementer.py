@@ -227,6 +227,14 @@ class ClaudeCodeImplementer:
     pointed at an empty config directory, and git's global/system config is
     blanked so no credential helper is available. Every result therefore lands
     as a reviewable diff before anything merges.
+
+    **Model and effort are configured here, not inherited.** ``claude -p``
+    with no ``--model`` runs whatever the founder's own CLI defaults to, so the
+    crew's spend silently tracked a setting made for interactive work — and
+    ``_child_env`` strips ``ANTHROPIC_MODEL``, so the flag is the only way in.
+    Naming the tier explicitly makes the venture's per-run cost a config
+    decision with a number attached (see ``ImplementResult.cost_usd``) rather
+    than an accident of the operator's environment.
     """
 
     repo_path: Path
@@ -234,6 +242,14 @@ class ClaudeCodeImplementer:
     base_branch: str = "main"
     timeout_seconds: float = 900.0
     claude_bin: str = "claude"
+
+    # The tier each job runs at. Defaults are deliberately not the top model:
+    # a solo founder's bill is a real constraint, and the work here is bounded
+    # by an approved proposal rather than open-ended research.
+    model: str = "sonnet"
+    effort: str = "high"
+    fix_model: str = "sonnet"
+    fix_effort: str = "medium"
 
     def __post_init__(self) -> None:
         """Resolve both paths to absolute, up front.
@@ -336,6 +352,19 @@ class ClaudeCodeImplementer:
             f"{proposal.strip()}\n"
         )
 
+    def _tier(self, *, existing: bool) -> tuple[str, str]:
+        """The ``(model, effort)`` this run gets.
+
+        The two jobs are not the same size. Implementing an approved proposal
+        is open-ended work from a prose brief; fixing a red build is a named
+        failure with a known smallest change, and the founder can ask for it
+        repeatedly. Tiering them separately is the difference between paying
+        the hard-problem rate once and paying it on every retry.
+        """
+        if existing:
+            return self.fix_model, self.fix_effort
+        return self.model, self.effort
+
     # ── the port ────────────────────────────────────────────────────────
 
     async def implement(
@@ -375,10 +404,15 @@ class ClaudeCodeImplementer:
         *,
         existing: bool = False,
     ) -> ImplementResult:
+        model, effort = self._tier(existing=existing)
         proc = await asyncio.create_subprocess_exec(
             self.claude_bin,
             "-p",
             self._prompt(proposal, existing=existing),
+            "--model",
+            model,
+            "--effort",
+            effort,
             "--permission-mode",
             "bypassPermissions",
             "--output-format",

@@ -134,8 +134,10 @@ def make_implementer(config: RuntimeConfig):
     """The coding agent, configured once and shared by both flows that use it.
 
     ``pr_tool`` writes new work on a fresh branch; ``/fix`` continues an
-    existing one. Same agent, same worktree isolation, same timeout — the only
-    difference is where the branch starts.
+    existing one. Same agent, same worktree isolation, same timeout, same
+    decision rights — what differs is where the branch starts and which tier
+    the run gets, since a bounded CI fix does not need what an open-ended
+    implementation does.
     """
     from pathlib import Path
 
@@ -146,6 +148,10 @@ def make_implementer(config: RuntimeConfig):
         worktree_root=Path(config.worktree_root).expanduser(),
         base_branch=config.pr_base_branch,
         timeout_seconds=config.implement_timeout_seconds,
+        model=config.implement_model,
+        effort=config.implement_effort,
+        fix_model=config.fix_model,
+        fix_effort=config.fix_effort,
     )
 
 

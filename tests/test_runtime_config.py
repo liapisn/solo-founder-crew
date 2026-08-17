@@ -65,6 +65,23 @@ def test_auto_create_channels_defaults_on_and_env_can_disable() -> None:
     assert off.auto_create_channels is False
 
 
+def test_agent_tier_defaults_and_overrides(tmp_path) -> None:
+    """The coding agent's model/effort is a spend decision, so it resolves the
+    same 12-factor way as everything else: defaults < crew.toml < env."""
+    cfg = load_runtime_config({}, config_path="/none.toml")
+    assert (cfg.implement_model, cfg.implement_effort) == ("sonnet", "high")
+    assert (cfg.fix_model, cfg.fix_effort) == ("sonnet", "medium")
+
+    toml = tmp_path / "crew.toml"
+    toml.write_text('[crew]\nimplement_model = "opus"\nfix_effort = "low"\n', encoding="utf-8")
+    from_toml = load_runtime_config({}, config_path=toml)
+    assert from_toml.implement_model == "opus"
+    assert from_toml.fix_effort == "low"
+
+    env = load_runtime_config({"SFC_IMPLEMENT_MODEL": "haiku"}, config_path=toml)
+    assert env.implement_model == "haiku"
+
+
 def test_require_discord_raises_when_missing() -> None:
     cfg = load_runtime_config({}, config_path="/nonexistent.toml")
     with pytest.raises(SystemExit, match="DISCORD_BOT_TOKEN"):

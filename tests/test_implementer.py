@@ -326,16 +326,29 @@ def target_repo(tmp_path):
 
 
 def _stub_claude(tmp_path, *, body: str) -> str:
-    """A fake `claude` that edits the tree, then prints the result JSON."""
+    """A fake `claude` that records its argv, edits the tree, then prints the
+    result JSON. The argv goes to ``tmp_path/claude-argv`` so tests can assert
+    on the flags the adapter passes — the tier is a spend decision, and the
+    only evidence it took effect is what reached the command line."""
     script = tmp_path / "claude-stub"
     script.write_text(
         "#!/bin/sh\n"
+        f'for a in "$@"; do echo "$a"; done > {tmp_path / "claude-argv"}\n'
         f"{body}\n"
         'echo \'{"is_error":false,"num_turns":3,"duration_ms":1234,'
         '"total_cost_usd":0.05,"session_id":"stub-session","result":"done"}\'\n'
     )
     script.chmod(0o755)
     return str(script)
+
+
+def _argv(tmp_path) -> list[str]:
+    return (tmp_path / "claude-argv").read_text().splitlines()
+
+
+def _flag(argv: list[str], name: str) -> str:
+    """The value following ``name`` in a recorded argv."""
+    return argv[argv.index(name) + 1]
 
 
 def test_relative_paths_are_resolved_at_construction(tmp_path, monkeypatch):
@@ -403,3 +416,67 @@ async def test_an_agent_that_writes_nothing_pushes_nothing(target_repo, tmp_path
     assert result.is_empty and not result.pushed and not result.ok
     branches = _git_out("branch", cwd=origin)
     assert "engineering/noop" not in branches
+
+
+# ─── ClaudeCodeImplementer: model / effort tiering ──────────────────────────
+# `claude -p` with no --model runs whatever the founder's interactive CLI
+# defaults to, and _child_env strips ANTHROPIC_MODEL — so the flag is the only
+# way the venture's spend decision reaches the agent. These pin that it does.
+
+
+async def test_the_tier_is_passed_on_the_command_line(target_repo, tmp_path, monkeypatch):
+    from solo_founder_crew.adapters.implementer import ClaudeCodeImplementer
+
+    _origin, work = target_repo
+    monkeypatch.chdir(tmp_path)
+    impl = ClaudeCodeImplementer(
+        repo_path=work,
+        worktree_root=Path("./wt"),
+        claude_bin=_stub_claude(tmp_path, body="echo hi > added.txt"),
+        timeout_seconds=60,
+        model="opus",
+        effort="max",
+    )
+    await impl.implement("Add a file", branch="engineering/tiered")
+
+    argv = _argv(tmp_path)
+    assert _flag(argv, "--model") == "opus"
+    assert _flag(argv, "--effort") == "max"
+    # The safety-relevant flags must survive alongside the new ones.
+    assert _flag(argv, "--permission-mode") == "bypassPermissions"
+    assert _flag(argv, "--output-format") == "json"
+
+
+async def test_a_ci_fix_runs_on_its_own_cheaper_tier(target_repo, tmp_path, monkeypatch):
+    """`/fix` is a named failure with a known smallest change — the founder can
+    ask for it repeatedly, so it must not cost what an open-ended run does."""
+    from solo_founder_crew.adapters.implementer import ClaudeCodeImplementer
+
+    _origin, work = target_repo
+    monkeypatch.chdir(tmp_path)
+    impl = ClaudeCodeImplementer(
+        repo_path=work,
+        worktree_root=Path("./wt"),
+        claude_bin=_stub_claude(tmp_path, body="echo fixed > added.txt"),
+        timeout_seconds=60,
+        model="opus",
+        effort="max",
+        fix_model="haiku",
+        fix_effort="low",
+    )
+    await impl.implement("CI is red", branch="main", existing=True)
+
+    argv = _argv(tmp_path)
+    assert _flag(argv, "--model") == "haiku"
+    assert _flag(argv, "--effort") == "low"
+
+
+def test_default_tier_is_not_the_top_model() -> None:
+    """A default that silently inherits the operator's interactive model is the
+    bug this closes; pin the defaults so it cannot regress unnoticed."""
+    from solo_founder_crew.adapters.implementer import ClaudeCodeImplementer
+
+    impl = ClaudeCodeImplementer(repo_path=Path("."), worktree_root=Path("."))
+
+    assert (impl.model, impl.effort) == ("sonnet", "high")
+    assert (impl.fix_model, impl.fix_effort) == ("sonnet", "medium")
