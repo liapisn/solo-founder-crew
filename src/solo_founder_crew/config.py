@@ -48,6 +48,16 @@ class RuntimeConfig:
     worktree_root: str = "./data/worktrees"
     implement_timeout_seconds: float = 900.0
 
+    # Which tier the coding agent runs at. Kept here rather than hard-coded in
+    # the adapter because the intelligence/cost trade-off is a venture-level
+    # decision the founder should be able to change without a redeploy — and
+    # the two jobs are tiered separately: writing a change from an approved
+    # proposal is open-ended, fixing a red build is a named, bounded failure.
+    implement_model: str = "sonnet"
+    implement_effort: str = "high"
+    fix_model: str = "sonnet"
+    fix_effort: str = "medium"
+
     @property
     def dev_flow_enabled(self) -> bool:
         return bool(self.pr_repo and self.pr_repo_path)
@@ -140,4 +150,12 @@ def load_runtime_config(
             or crew.get("implement_timeout_seconds")
             or 900.0
         ),
+        implement_model=(
+            env.get("SFC_IMPLEMENT_MODEL") or crew.get("implement_model") or "sonnet"
+        ),
+        implement_effort=(
+            env.get("SFC_IMPLEMENT_EFFORT") or crew.get("implement_effort") or "high"
+        ),
+        fix_model=(env.get("SFC_FIX_MODEL") or crew.get("fix_model") or "sonnet"),
+        fix_effort=(env.get("SFC_FIX_EFFORT") or crew.get("fix_effort") or "medium"),
     )

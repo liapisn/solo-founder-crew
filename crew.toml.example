@@ -8,6 +8,15 @@ checkpointer = "sqlite:///./data/state.db"   # or "memory"
 auto_channels = true                 # auto-create a channel per role on connect
 # guild_id = 123456789012345678      # usually set via SFC_GUILD_ID in .env instead
 
+# Dev Flow: which tier the coding agent runs at — the biggest lever on what the
+# crew costs. See docs/dev-flow.md § Cost. Effort is low | medium | high |
+# xhigh | max. A CI fix is tiered separately from an open-ended implementation
+# because it is a smaller, bounded job.
+# implement_model = "sonnet"
+# implement_effort = "high"
+# fix_model = "sonnet"
+# fix_effort = "medium"
+
 # Channels are auto-created by default (a channel per role, under a
 # "<venture> crew" category). You only need this section to PIN specific
 # existing channels — an explicit mapping here always wins over auto-create.
