@@ -40,7 +40,7 @@ jobs:
           pip install -e ".[dev,runtime]"
 
       - name: Lint (ruff)
-        run: ruff check src/ tests/ examples/
+        run: ruff check src/ tests/ examples/ evaluation/
 
       - name: Test (pytest)
         run: pytest
