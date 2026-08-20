@@ -195,6 +195,17 @@ def main() -> int:
                 print(f"(saved final artefact to {path})")
             break
 
+        if line.startswith("/") and line != "/brief":
+            # A mistyped command must never become a prompt. `/nex` did exactly
+            # that once: it reached the model, cost a turn, and inflated M1 by one
+            # against the baseline — bias in the direction that flatters the
+            # framework. Nothing in this protocol legitimately starts with "/".
+            print(
+                f"(unknown command {line!r} — not sent. "
+                f"commands: /brief /next /approve /kill /stop /undo /help)"
+            )
+            continue
+
         if line == "/brief":
             user_text = brief_prose
             log.add("paste_brief", chars_typed=len(brief_prose))
