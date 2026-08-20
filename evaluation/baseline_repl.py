@@ -25,6 +25,10 @@ Commands at the prompt:
     /undo       drop the last exchange (mistyped, not a founder decision)
     /help       show this
 
+A terminal command is refused until the brief has been sent and a draft exists.
+That guard records nothing and decides nothing — it only stops a run that would
+have to be discarded from consuming live calls.
+
 Everything else you type is a prompt to the model and counts as one interaction.
 Timing excludes your think-time by construction: only model latency is summed.
 """
@@ -133,6 +137,24 @@ def main() -> int:
             continue
 
         if line in TERMINAL:
+            # Operator guard. Not part of the instrument: it changes no scenario,
+            # no prompt, no model setting and no interaction accounting. It only
+            # refuses to *record* a run that the rubric would require discarding
+            # anyway — three of the first four attempts terminated before the
+            # brief or before a draft existed, each costing live calls and a redo.
+            missing = []
+            if not any(i.kind == "paste_brief" for i in log.founder_interactions):
+                missing.append("/brief has not been sent — Condition B would be "
+                               "scored on A2 brief adherence having never seen the brief")
+            if not last_reply:
+                missing.append("no draft yet — there is nothing to approve, kill or stop on")
+            if missing:
+                print("\nrefusing to terminate:")
+                for reason in missing:
+                    print(f"  - {reason}")
+                print("(see CONDITION_B_RUN_CARDS.md for this scenario's order)\n")
+                continue
+
             status = TERMINAL[line]
             log.termination_path = status
             log.add({"shipped": "approve", "killed": "kill", "exhausted": "stop"}[status])
