@@ -22,6 +22,9 @@ Commands at the prompt:
     /approve    terminal: you would ship this
     /kill       terminal: you would not ship this at all
     /stop       terminal: you gave up revising (the exhausted analogue)
+    /next       play this scenario's next scripted decision — sends the exact
+                feedback string, or approve/kill/stop, so nothing is transcribed
+                by hand. Preferred over typing the feedback yourself.
     /undo       drop the last exchange (mistyped, not a founder decision)
     /help       show this
 
@@ -110,6 +113,8 @@ def main() -> int:
     )
 
     messages: list[dict[str, str]] = []
+    scripted = list(scenario.decisions)
+    script_pos = 0
     last_reply = ""
     t_start = time.perf_counter()
 
@@ -136,25 +141,46 @@ def main() -> int:
                 print("(nothing to undo)")
             continue
 
+
+        if line == "/next":
+            if not any(i.kind == "paste_brief" for i in log.founder_interactions):
+                print("(send /brief first)")
+                continue
+            if not last_reply:
+                print("(no draft yet — send the task first)")
+                continue
+            if script_pos >= len(scripted):
+                print("(script exhausted — this scenario has no further decisions)")
+                continue
+            action, feedback = scripted[script_pos]
+            script_pos += 1
+            exhausted_last = (
+                scenario.expected_status == "exhausted"
+                and script_pos == len(scripted)
+            )
+            if action == "reject" and not exhausted_last:
+                print(f"(scripted reject {script_pos}/{len(scripted)} — sending verbatim)")
+                line = feedback
+                # fall through to the prompt path below
+            else:
+                mapped = {
+                    "approve": "/approve",
+                    "kill": "/kill",
+                    "reject": "/stop",  # the final rejection of an exhausted scenario
+                }[action]
+                print(f"(scripted {action} -> {mapped})")
+                line = mapped
+
         if line in TERMINAL:
-            # Operator guard. Not part of the instrument: it changes no scenario,
-            # no prompt, no model setting and no interaction accounting. It only
-            # refuses to *record* a run that the rubric would require discarding
-            # anyway — three of the first four attempts terminated before the
-            # brief or before a draft existed, each costing live calls and a redo.
+            # Operator guard (re-checked here because /next may have rewritten line).
             missing = []
             if not any(i.kind == "paste_brief" for i in log.founder_interactions):
-                missing.append("/brief has not been sent — Condition B would be "
-                               "scored on A2 brief adherence having never seen the brief")
+                missing.append("/brief has not been sent")
             if not last_reply:
-                missing.append("no draft yet — there is nothing to approve, kill or stop on")
+                missing.append("no draft yet")
             if missing:
-                print("\nrefusing to terminate:")
-                for reason in missing:
-                    print(f"  - {reason}")
-                print("(see CONDITION_B_RUN_CARDS.md for this scenario's order)\n")
+                print("\nrefusing to terminate: " + "; ".join(missing) + "\n")
                 continue
-
             status = TERMINAL[line]
             log.termination_path = status
             log.add({"shipped": "approve", "killed": "kill", "exhausted": "stop"}[status])
@@ -175,7 +201,7 @@ def main() -> int:
             print(f"(sent the brief — {len(brief_prose)} chars, counted as 1 interaction)")
         else:
             user_text = line
-            log.add("prompt", chars_typed=len(line))
+            log.add("prompt", feedback=line, chars_typed=len(line))
 
         messages.append({"role": "user", "content": user_text})
         t0 = time.perf_counter()
