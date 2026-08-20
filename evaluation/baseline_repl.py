@@ -22,6 +22,7 @@ Commands at the prompt:
     /approve    terminal: you would ship this
     /kill       terminal: you would not ship this at all
     /stop       terminal: you gave up revising (the exhausted analogue)
+    /task       send this scenario's task verbatim
     /next       play this scenario's next scripted decision — sends the exact
                 feedback string, or approve/kill/stop, so nothing is transcribed
                 by hand. Preferred over typing the feedback yourself.
@@ -195,7 +196,32 @@ def main() -> int:
                 print(f"(saved final artefact to {path})")
             break
 
-        if line.startswith("/") and line != "/brief":
+        if line == "/task":
+            # The last thing still retyped by hand. /brief has always sent fixed
+            # content verbatim; the task is the same kind of thing and its absence
+            # here was an oversight — S3-B-01 went in at 144 chars against 145,
+            # a dropped full stop. Costs and counts exactly what typing it costs.
+            user_text = scenario.task
+            log.add("prompt", feedback=scenario.task, chars_typed=len(scenario.task))
+            print(f"(sent the task verbatim — {len(scenario.task)} chars)")
+            messages.append({"role": "user", "content": user_text})
+            t0 = time.perf_counter()
+            resp = client.messages.create(
+                model=MODEL, max_tokens=MAX_TOKENS, messages=messages
+            )
+            log.llm_latency_s = round(log.llm_latency_s + (time.perf_counter() - t0), 3)
+            reply = "".join(
+                b.text for b in resp.content if getattr(b, "type", "") == "text"
+            )
+            messages.append({"role": "assistant", "content": reply})
+            last_reply = reply
+            log.tokens["input"] += resp.usage.input_tokens
+            log.tokens["output"] += resp.usage.output_tokens
+            log.turns = len(messages) // 2
+            print(f"\nclaude> {reply}\n")
+            continue
+
+        if line.startswith("/") and line not in ("/brief", "/task"):
             # A mistyped command must never become a prompt. `/nex` did exactly
             # that once: it reached the model, cost a turn, and inflated M1 by one
             # against the baseline — bias in the direction that flatters the
