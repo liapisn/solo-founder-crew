@@ -194,6 +194,18 @@ def main() -> int:
                 log.final_artifact_sha256 = sha256(last_reply)
                 log.add("copy_out")
                 print(f"(saved final artefact to {path})")
+            elif last_reply:
+                # M3 is comparative and reads S8/S9 outputs. A killed or
+                # exhausted run ships nothing, so nothing was archived and the
+                # baseline half of M3 could not be read at all — Condition F
+                # keeps its draft in the RunTrace, Condition B kept nothing.
+                # Written to drafts/, never artifacts/, so it cannot leak into
+                # the blinded Panel A set.
+                drafts = args.out / "drafts"
+                drafts.mkdir(parents=True, exist_ok=True)
+                dpath = drafts / f"{run_id}.txt"
+                dpath.write_text(last_reply, encoding="utf-8")
+                print(f"(saved last draft to {dpath} — not a shipped artefact)")
             break
 
         if line == "/task":

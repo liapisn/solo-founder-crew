@@ -123,6 +123,13 @@ def run_one(scenario, rep: int, client, brief_prose: str, out_dir: Path) -> Deci
             log.artifact_path = str(path.relative_to(out_dir))
             log.final_artifact_sha256 = sha256(last_reply)
             log.add("copy_out")
+        elif last_reply:
+            # See baseline_repl: M3 needs the draft a killed/exhausted run
+            # produced. drafts/, never artifacts/, so the blinded Panel A set
+            # stays exactly the shipped artefacts.
+            drafts = out_dir / "drafts"
+            drafts.mkdir(parents=True, exist_ok=True)
+            (drafts / f"{run_id}.txt").write_text(last_reply, encoding="utf-8")
         break
 
     log.wall_clock_s = round(time.perf_counter() - t_start, 3)
