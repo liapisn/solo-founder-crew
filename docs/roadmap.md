@@ -4,12 +4,19 @@ Tracking doc for turning the framework (a demonstrated artifact) into a
 *living company* the solo founder runs from Discord: channels per function,
 agents that act, the founder approving from their phone.
 
-**Scope note.** This is **product**, not the διπλωματική. The thesis
-contribution — the five-component framework, the HITL Contract as a
-substitutable seam, the operating-model demonstration — is already done and
-defensible (Ch.3). This roadmap is what the framework *enables*, built on top
-of it. Most of it is post-thesis; the most it should touch the thesis is
-enriching the Ch.4 Passly demonstration (still sandbox/synthetic).
+**Scope note.** The milestone ladder (M1–M6) and the Passly go-live track
+(B0–B6) are **product**, not the διπλωματική. The thesis contribution — the
+five-component framework, the HITL Contract as a substitutable seam, the
+operating-model demonstration — is already done and defensible (Ch.3). That part
+of this roadmap is what the framework *enables*, built on top of it, and most of
+it is post-thesis.
+
+Two sections *are* in-thesis and are both complete: the **Ch.4 Passly demo**
+(P0–P4) and the **Ch.5 evaluation harness** (`evaluation/`). They are recorded
+here because they are engineering, and a roadmap that omits the largest recent
+body of work is not a record. **No engineering item remains on the thesis
+critical path** — what is left before submission is Panel A scoring and writing
+(thesis Parts 14, 16–19).
 
 **Two tracks, decoupled (decided 2026-06-27).** The thesis ships first —
 prose → submit by 2026-09-30 on the existing sandbox/synthetic Passly demo;
@@ -40,8 +47,20 @@ product layers the crew repo does not contain.
 - **Per-role model routing** — `Crew.role_llms` map; Marketing on Haiku,
   Engineering on Opus, any future role on any LLM via the substrate-
   neutral `LLMClient` Protocol.
+- **Crew activity log** — `CrewEventSink` (`events.py`), the same
+  Protocol-with-fake seam as `HITLContract` / `LLMClient` / `GitHubAPI`,
+  reporting to `#crew-logs`: run started, draft waiting, founder decision,
+  coding agent working, cost, PR opened. Before it, a live run could die with a
+  bare `FileNotFoundError` and look from Discord like nothing had happened.
+- **Operational recovery** — `/retry` brings back a run that died mid-flight
+  (distinct from `Crew.resume`, which recovers a run whose *process* restarted);
+  the publish gate is declared on every role holding `publisher_tool`, so the
+  escalation cannot be bypassed by handing the tool to a new role.
 - **Dev workflow** — CI (ruff+pytest) on push + PR; CI→Discord PR notify
-  via channel webhook; the `engineering` role / Dev Flow.
+  via channel webhook; the `engineering` role / Dev Flow. `/fix` sends the
+  engineering role at a red CI run. The coding agent has its own model tier
+  (`agent_llm`) rather than inheriting the founder's interactive model — spend
+  was following the wrong dial.
 
 ## Milestones
 
@@ -292,6 +311,36 @@ count without re-downloading; a verified email domain; billing; real-PII GDPR.
 **Synergy with Ch.5 eval:** the demo's shop scenarios double as the eval
 harness scenarios — authored once, used for both Ch.4 (application) and Ch.5
 (evaluation).
+
+## Ch.5 evaluation harness (in-thesis, ✅ complete)
+
+`evaluation/` in this repo — the machinery for the Chapter 5 comparison. The
+instrument itself (dimensions, anchors, scoring procedure, validity threats) is
+the pre-registered rubric in the thesis repo, frozen 2026-08-17 at v1.0 before
+any run; this is only what runs it. Docs: `evaluation/README.md`.
+
+| # | Item | Status |
+|---|------|--------|
+| **E-H1** | Scenario set S1–S10 defined once, read by both conditions | ✅ (#22) |
+| **E-H2** | Condition F — Author Flow driven with the role taken from the Role Library, so Component 2 is exercised as shipped. `RecordingHITL` is a **third** `HITLContract` implementation, written without touching `Crew`, `Role` or tool code — §3.8 substitutability evidence | ✅ (#22) |
+| **E-H3** | Condition B — a bare chat loop that **imports nothing from `solo_founder_crew`**. Same model, same `max_tokens`, so a difference cannot be attributed to the model | ✅ (#22) |
+| **E-H4** | `run_condition_b.py` — scripted replay of the baseline protocol, third-party re-runnable | ✅ (#23) |
+| **E-H5** | Operator guards + 48 protocol tests; `interaction_count` (M1) written into the log at schema v2 | ✅ (#24, #25) |
+
+**47/47 runs complete**, across `F_mock_e4a`, `F_live_scored`, `F_live_e4b`,
+`B_live_scored`, `B_live_e4b`. Panel B is read where §8 permits; Panel A scoring
+(thesis Part 14) is the remaining thesis work and is **not** engineering.
+
+Two things worth carrying forward, because they are framework findings rather
+than harness details:
+
+- **A third HITL adapter, for free.** `RecordingHITL` joins `DiscordHITL` and
+  `WebHITL` on the same seam. Three independent implementations, none of which
+  required a runtime change, is the strongest form the §3.8 claim takes.
+- **The baseline shares no code, only data.** Both conditions read the same
+  brief JSON and the same scenario definitions and nothing else. If the baseline
+  imported the framework, "no framework" would be a claim the code contradicts —
+  a test asserts it over parsed imports.
 
 ## Decisions log
 
