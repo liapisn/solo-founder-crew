@@ -22,8 +22,16 @@ Commands at the prompt:
     /approve    terminal: you would ship this
     /kill       terminal: you would not ship this at all
     /stop       terminal: you gave up revising (the exhausted analogue)
+    /task       send this scenario's task verbatim
+    /next       play this scenario's next scripted decision — sends the exact
+                feedback string, or approve/kill/stop, so nothing is transcribed
+                by hand. Preferred over typing the feedback yourself.
     /undo       drop the last exchange (mistyped, not a founder decision)
     /help       show this
+
+A terminal command is refused until the brief has been sent and a draft exists.
+That guard records nothing and decides nothing — it only stops a run that would
+have to be discarded from consuming live calls.
 
 Everything else you type is a prompt to the model and counts as one interaction.
 Timing excludes your think-time by construction: only model latency is summed.
@@ -106,6 +114,8 @@ def main() -> int:
     )
 
     messages: list[dict[str, str]] = []
+    scripted = list(scenario.decisions)
+    script_pos = 0
     last_reply = ""
     t_start = time.perf_counter()
 
@@ -132,7 +142,46 @@ def main() -> int:
                 print("(nothing to undo)")
             continue
 
+
+        if line == "/next":
+            if not any(i.kind == "paste_brief" for i in log.founder_interactions):
+                print("(send /brief first)")
+                continue
+            if not last_reply:
+                print("(no draft yet — send the task first)")
+                continue
+            if script_pos >= len(scripted):
+                print("(script exhausted — this scenario has no further decisions)")
+                continue
+            action, feedback = scripted[script_pos]
+            script_pos += 1
+            exhausted_last = (
+                scenario.expected_status == "exhausted"
+                and script_pos == len(scripted)
+            )
+            if action == "reject" and not exhausted_last:
+                print(f"(scripted reject {script_pos}/{len(scripted)} — sending verbatim)")
+                line = feedback
+                # fall through to the prompt path below
+            else:
+                mapped = {
+                    "approve": "/approve",
+                    "kill": "/kill",
+                    "reject": "/stop",  # the final rejection of an exhausted scenario
+                }[action]
+                print(f"(scripted {action} -> {mapped})")
+                line = mapped
+
         if line in TERMINAL:
+            # Operator guard (re-checked here because /next may have rewritten line).
+            missing = []
+            if not any(i.kind == "paste_brief" for i in log.founder_interactions):
+                missing.append("/brief has not been sent")
+            if not last_reply:
+                missing.append("no draft yet")
+            if missing:
+                print("\nrefusing to terminate: " + "; ".join(missing) + "\n")
+                continue
             status = TERMINAL[line]
             log.termination_path = status
             log.add({"shipped": "approve", "killed": "kill", "exhausted": "stop"}[status])
@@ -145,7 +194,55 @@ def main() -> int:
                 log.final_artifact_sha256 = sha256(last_reply)
                 log.add("copy_out")
                 print(f"(saved final artefact to {path})")
+            elif last_reply:
+                # M3 is comparative and reads S8/S9 outputs. A killed or
+                # exhausted run ships nothing, so nothing was archived and the
+                # baseline half of M3 could not be read at all — Condition F
+                # keeps its draft in the RunTrace, Condition B kept nothing.
+                # Written to drafts/, never artifacts/, so it cannot leak into
+                # the blinded Panel A set.
+                drafts = args.out / "drafts"
+                drafts.mkdir(parents=True, exist_ok=True)
+                dpath = drafts / f"{run_id}.txt"
+                dpath.write_text(last_reply, encoding="utf-8")
+                print(f"(saved last draft to {dpath} — not a shipped artefact)")
             break
+
+        if line == "/task":
+            # The last thing still retyped by hand. /brief has always sent fixed
+            # content verbatim; the task is the same kind of thing and its absence
+            # here was an oversight — S3-B-01 went in at 144 chars against 145,
+            # a dropped full stop. Costs and counts exactly what typing it costs.
+            user_text = scenario.task
+            log.add("prompt", feedback=scenario.task, chars_typed=len(scenario.task))
+            print(f"(sent the task verbatim — {len(scenario.task)} chars)")
+            messages.append({"role": "user", "content": user_text})
+            t0 = time.perf_counter()
+            resp = client.messages.create(
+                model=MODEL, max_tokens=MAX_TOKENS, messages=messages
+            )
+            log.llm_latency_s = round(log.llm_latency_s + (time.perf_counter() - t0), 3)
+            reply = "".join(
+                b.text for b in resp.content if getattr(b, "type", "") == "text"
+            )
+            messages.append({"role": "assistant", "content": reply})
+            last_reply = reply
+            log.tokens["input"] += resp.usage.input_tokens
+            log.tokens["output"] += resp.usage.output_tokens
+            log.turns = len(messages) // 2
+            print(f"\nclaude> {reply}\n")
+            continue
+
+        if line.startswith("/") and line not in ("/brief", "/task"):
+            # A mistyped command must never become a prompt. `/nex` did exactly
+            # that once: it reached the model, cost a turn, and inflated M1 by one
+            # against the baseline — bias in the direction that flatters the
+            # framework. Nothing in this protocol legitimately starts with "/".
+            print(
+                f"(unknown command {line!r} — not sent. "
+                f"commands: /brief /next /approve /kill /stop /undo /help)"
+            )
+            continue
 
         if line == "/brief":
             user_text = brief_prose
@@ -153,7 +250,7 @@ def main() -> int:
             print(f"(sent the brief — {len(brief_prose)} chars, counted as 1 interaction)")
         else:
             user_text = line
-            log.add("prompt", chars_typed=len(line))
+            log.add("prompt", feedback=line, chars_typed=len(line))
 
         messages.append({"role": "user", "content": user_text})
         t0 = time.perf_counter()
