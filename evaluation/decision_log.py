@@ -6,6 +6,9 @@ founder does at the REPL. That asymmetry is itself a finding — nothing in a ba
 chat loop produces this record for free, which is what E3/A4 (trace legibility)
 measures.
 
+``interaction_count`` (M1) is written into every log from schema version 2 on;
+see :data:`SCHEMA_VERSION` for what that means for the runs already archived.
+
 Also here: :func:`render_brief_prose`, which flattens the Venture Brief to the
 prose block Condition B receives. Generating it from the same JSON the framework
 loads is the only way to claim both conditions saw the same brief content
@@ -20,7 +23,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
+"""2 adds ``interaction_count`` (M1) to the written record.
+
+A ``schema_version`` has to identify a shape, so adding a key bumps it. Logs in
+``Ch5_Eval_Runs/`` written before this are version 1 and omit the key; M1 is
+``len(founder_interactions)`` there, so nothing is lost and no archived run needs
+rewriting to be re-scored.
+"""
 
 
 def now_iso() -> str:
@@ -92,11 +102,31 @@ class DecisionLog:
         """M1 — the headline oversight-effort number."""
         return len(self.founder_interactions)
 
+    def to_dict(self) -> dict[str, Any]:
+        """The serialised form, with ``interaction_count`` written explicitly.
+
+        M1 is the headline metric and was absent from the file: ``asdict`` walks
+        dataclass fields and a property is not one, so a third party re-scoring
+        from a single log had to compute it. It is emitted next to the list it
+        summarises.
+
+        Derived here rather than stored as a field on purpose. A stored count is
+        a second source of truth that can disagree with
+        ``founder_interactions`` — a log claiming M1 = 6 over five recorded
+        interactions is worse than a log that makes you count.
+        """
+        data: dict[str, Any] = {}
+        for key, value in asdict(self).items():
+            if key == "founder_interactions":
+                data["interaction_count"] = self.interaction_count
+            data[key] = value
+        return data
+
     def write(self, out_dir: Path) -> Path:
         out_dir.mkdir(parents=True, exist_ok=True)
         path = out_dir / f"{self.run_id}.json"
         path.write_text(
-            json.dumps(asdict(self), ensure_ascii=False, indent=2),
+            json.dumps(self.to_dict(), ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
         return path
