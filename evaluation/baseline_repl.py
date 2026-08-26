@@ -29,9 +29,10 @@ Commands at the prompt:
     /undo       drop the last exchange (mistyped, not a founder decision)
     /help       show this
 
-A terminal command is refused until the brief has been sent and a draft exists.
-That guard records nothing and decides nothing — it only stops a run that would
-have to be discarded from consuming live calls.
+A terminal command is refused until the brief *and* the task have been sent, and
+any input starting with "/" that is not a command above is refused and never
+sent. Those guards record nothing and decide nothing — they only stop a run that
+would have to be discarded from consuming live calls.
 
 Everything else you type is a prompt to the model and counts as one interaction.
 Timing excludes your think-time by construction: only model latency is summed.
@@ -54,6 +55,22 @@ MODEL = "claude-haiku-4-5"
 MAX_TOKENS = 1024
 
 TERMINAL = {"/approve": "shipped", "/kill": "killed", "/stop": "exhausted"}
+
+
+def task_sent(log: DecisionLog) -> bool:
+    """Has the founder sent the task — i.e. is ``last_reply`` a draft of it?
+
+    Not ``bool(last_reply)``, which is what the guards used to test. ``/brief``
+    is itself a message to the model, so it sets ``last_reply`` on its own: the
+    old check passed the instant the brief was sent, and ``/brief`` followed by
+    ``/approve`` shipped the model's reply *to the brief* as the artefact with no
+    task ever sent. That is the slip the guard exists to stop.
+
+    A ``prompt`` interaction is the right proxy. ``/brief`` logs ``paste_brief``,
+    ``/task`` and a hand-typed task both log ``prompt``, and ``/undo`` pops the
+    interaction — so undoing the task correctly re-arms the guard.
+    """
+    return any(i.kind == "prompt" for i in log.founder_interactions)
 
 
 def load_env(path: Path) -> None:
@@ -147,7 +164,7 @@ def main() -> int:
             if not any(i.kind == "paste_brief" for i in log.founder_interactions):
                 print("(send /brief first)")
                 continue
-            if not last_reply:
+            if not task_sent(log):
                 print("(no draft yet — send the task first)")
                 continue
             if script_pos >= len(scripted):
@@ -177,8 +194,8 @@ def main() -> int:
             missing = []
             if not any(i.kind == "paste_brief" for i in log.founder_interactions):
                 missing.append("/brief has not been sent")
-            if not last_reply:
-                missing.append("no draft yet")
+            if not task_sent(log):
+                missing.append("the task has not been sent, so there is no draft")
             if missing:
                 print("\nrefusing to terminate: " + "; ".join(missing) + "\n")
                 continue
@@ -240,7 +257,7 @@ def main() -> int:
             # framework. Nothing in this protocol legitimately starts with "/".
             print(
                 f"(unknown command {line!r} — not sent. "
-                f"commands: /brief /next /approve /kill /stop /undo /help)"
+                f"commands: /brief /task /next /approve /kill /stop /undo /help)"
             )
             continue
 
