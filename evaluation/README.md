@@ -110,6 +110,19 @@ Condition F enforces.
 not provenance — S1-B-01's 110 and 161 happen to agree — and §8 step 7 asks for
 independent re-scorability.
 
+## The log schema
+
+Rubric §7 fixes it; `decision_log.py` is the implementation. **Schema version 2**
+writes `interaction_count` (M1) into every log, next to the
+`founder_interactions` list it summarises. It is derived at serialisation rather
+than stored as a field, so it cannot drift from the list — a log claiming M1 = 6
+over five recorded interactions would be worse than one that makes you count.
+
+The 50 runs already in `Ch5_Eval_Runs/` are version 1 and omit the key. M1 there
+is `len(founder_interactions)`, so nothing is lost and **no archived run needs
+rewriting** — which matters, because the commit order of that directory is the
+evidence that the instrument predates the data.
+
 **This weakens rubric §3.2 as written.** It pre-registers Condition B as
 performed by the author, which was true when the operator transcribed the brief,
 the task and every feedback string. Nothing is left for a human to get right, so

@@ -154,6 +154,46 @@ def test_decision_log_counts_interactions_and_round_trips(tmp_path):
 
     path = log.write(tmp_path)
     data = json.loads(path.read_text(encoding="utf-8"))
-    assert data["schema_version"] == 1
+    assert data["schema_version"] == 2
+    assert data["interaction_count"] == 4
     assert data["founder_interactions"][2]["feedback"] == "πιο ζεστό"
     assert [i["seq"] for i in data["founder_interactions"]] == [1, 2, 3, 4]
+
+
+def test_written_log_carries_m1_and_cannot_disagree_with_it(tmp_path):
+    """M1 is the headline metric and was missing from the file — ``asdict``
+    walks dataclass fields and ``interaction_count`` is a property.
+
+    Derived at serialisation, so it tracks further interactions rather than
+    going stale. A log claiming M1 = 6 over five recorded interactions would be
+    worse than one that makes the re-scorer count.
+    """
+    log = DecisionLog(run_id="Y-B-01", scenario="Y", condition="B", llm="m", role="n/a")
+    for kind in ("paste_brief", "prompt", "reject", "prompt", "approve"):
+        log.add(kind)
+
+    first = json.loads(log.write(tmp_path).read_text(encoding="utf-8"))
+    assert first["interaction_count"] == 5 == len(first["founder_interactions"])
+
+    log.add("copy_out")
+    second = json.loads(log.write(tmp_path).read_text(encoding="utf-8"))
+    assert second["interaction_count"] == 6 == len(second["founder_interactions"])
+
+
+def test_m1_appears_next_to_the_list_it_summarises(tmp_path):
+    """Placement is legibility, not cosmetics — the rubric §7 log is read by hand."""
+    log = DecisionLog(run_id="Z-F-01", scenario="Z", condition="F", llm="m", role="r")
+    log.add("approve")
+    keys = list(json.loads(log.write(tmp_path).read_text(encoding="utf-8")))
+
+    assert keys.index("interaction_count") == keys.index("founder_interactions") - 1
+
+
+@pytest.mark.asyncio
+async def test_condition_f_logs_carry_m1_too(brief, tmp_path):
+    """Both conditions write through DecisionLog.write, so both get the field."""
+    log = await run_one(BY_ID["S1"], brief, live=False, rep=1, out_dir=tmp_path)
+    data = json.loads((tmp_path / f"{log.run_id}.json").read_text(encoding="utf-8"))
+
+    assert data["interaction_count"] == log.interaction_count
+    assert data["schema_version"] == 2
