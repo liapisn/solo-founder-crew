@@ -252,7 +252,7 @@ not rewritten — B4 walks through seams that are already open.
 | **B0** | Product repo bootstrap | New `passly` repo; depends on `solo-founder-crew`; CI; `.env`/secrets; deploy target chosen | `passly` | ⏳ |
 | **B1** | Wallet pass issuance | The product core: Apple Wallet (PassKit, `.pkpass` signing, Apple Developer cert) + Google Wallet API. Issue, update, revoke a pass | `passly` | ⏳ |
 | **B2** | SMB onboarding surface | SMB sign-up; brand config; define a pass (loyalty card / coupon); QR + link distribution to end-customers | `passly` | ⏳ |
-| **B3** | AI marketing layer | Crew marketing role → real campaigns; pass-update pushes on campaign events. Email already real (`email_tool`, Resend) | both | ⏳ (email ✅) |
+| **B3** | AI marketing layer | Crew marketing role → real campaigns; social post drafts (FB/IG) the owner posts by hand; pass-update pushes on campaign events. Email already real (`email_tool`, Resend) | both | ⏳ (email ✅) |
 | **B4** | Crew M3–M5 | Proactive (scheduled campaign/reports), event-driven (SMB signup → onboarding flow; end-customer msg → support triage), flow library | `solo-founder-crew` | ⏳ (= M3/M4/M5) |
 | **B5** | Compliance + ops | GDPR for **real** end-customer PII in passes; DPA with each SMB; billing (Stripe); hosting (VM + `postgresql://`); monitoring/budgets | `passly` | ⏳ |
 | **B6** | First SMB pilot | Onboard one real Greek SMB end-to-end; real passes + real campaign; iterate to product-market signal | both | ⏳ |
@@ -263,6 +263,21 @@ the ladder above, now load-bearing rather than optional). **B5** is the
 go-live gate — real PII and money mean it cannot be skipped. **B6** is the
 proof. Nothing here is on the thesis critical path; the thesis evaluation
 stays sandbox/synthetic by design.
+
+**Next step on B3 — Facebook / Instagram post drafts the owner can copy out.**
+Today the approved campaign is one blob of Greek text, and the `publisher_tool`
+Passly registers is a stub (`shipped:{n}chars`), so approving at the gate
+publishes nothing anywhere. The cheapest useful step is to make the artefact
+*channel-shaped*: the marketing role drafts a **Facebook post** and an
+**Instagram caption** alongside the email copy — each with its own length,
+line-breaks, emoji and hashtags — and the web UI renders each one as a
+**preview of how the post will look** in-feed, next to a copy button. The shop
+owner pastes it into their own Page/account and posts it. Deliberately *no*
+Meta Graph API: publishing on someone's behalf needs app review, business
+verification and a linked professional account, which is B5-shaped work,
+whereas draft + preview + copy needs none of it and is the thing an SMB owner
+actually asks for. Real API publishing later drops in behind the same
+`publisher_tool` seam without changing the flow.
 
 ## Ch.4 Passly demo (in-thesis, due 2026-09-30)
 
