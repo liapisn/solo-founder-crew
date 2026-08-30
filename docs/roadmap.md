@@ -15,8 +15,13 @@ Two sections *are* in-thesis and are both complete: the **Ch.4 Passly demo**
 (P0–P4) and the **Ch.5 evaluation harness** (`evaluation/`). They are recorded
 here because they are engineering, and a roadmap that omits the largest recent
 body of work is not a record. **No engineering item remains on the thesis
-critical path** — what is left before submission is Panel A scoring and writing
-(thesis Parts 14, 16–19).
+critical path.**
+
+**Thesis-side engineering closed 2026-08-30.** Part 14 (Panel A scoring) closed
+29/8 and Ch.5 was drafted the same day; Ch.2–Ch.5 were stitched into a single
+70-page v1 on 30/8. What is left before submission is writing only — Ch.1, Ch.6,
+the re-stitch, the formatting template and the citations pass (thesis Parts
+17–19). Nothing in this repo or in `passly` blocks any of it.
 
 **Two tracks, decoupled (decided 2026-06-27).** The thesis ships first —
 prose → submit by 2026-09-30 on the existing sandbox/synthetic Passly demo;
@@ -235,8 +240,9 @@ each other and to the founder; the "arbitration/coordination" layer.
 The capability ladder above turns the crew into a *living company*. This track
 turns **Passly** into a *live venture* — a first real Greek SMB onboarded,
 real wallet passes issued, a real campaign sent. It lives in a **separate
-`passly` repo** (not yet created) that consumes `solo-founder-crew` as a
-dependency; only B3/B4 touch this repo. Scope, scale, and honesty up front:
+`passly` repo** that consumes `solo-founder-crew` as a
+dependency — **created 2026-06/07 and now at PR #28**, carrying the Ch.4 demo
+(P0–P4) — of which only B3/B4 touch this repo. Scope, scale, and honesty up front:
 this is a startup buildout measured in **months, not weeks**, and it starts in
 earnest *after* the thesis is submitted (2026-09-30). The framework spine is
 not rewritten — B4 walks through seams that are already open.
@@ -328,8 +334,18 @@ any run; this is only what runs it. Docs: `evaluation/README.md`.
 | **E-H5** | Operator guards + 48 protocol tests; `interaction_count` (M1) written into the log at schema v2 | ✅ (#24, #25) |
 
 **47/47 runs complete**, across `F_mock_e4a`, `F_live_scored`, `F_live_e4b`,
-`B_live_scored`, `B_live_e4b`. Panel B is read where §8 permits; Panel A scoring
-(thesis Part 14) is the remaining thesis work and is **not** engineering.
+`B_live_scored`, `B_live_e4b`. **Complete as of 2026-08-29:** Panel B is fully
+read, Panel A is scored, unblinded and aggregated in `scorecard.md`, and Ch.5 is
+drafted. The harness has no open item.
+
+The result the harness produced, recorded here because it is the point of
+building it: on the blinded output-quality criteria the two conditions came in
+**5.2 percentage points apart**, with the baseline matching or beating the
+framework on five of eight scenarios. **The framework does not write better
+copy** — it was never claimed to. The separation is 2.5× fewer founder
+interactions, 3.4× less model latency, 2.0× fewer tokens, a ship-ready artefact
+in 7 of 8 scenarios against 3 of 8, and a run record a third party can
+reconstruct. Rubric §2 predicted that shape before any run.
 
 Two things worth carrying forward, because they are framework findings rather
 than harness details:
