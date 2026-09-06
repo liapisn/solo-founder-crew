@@ -1,0 +1,45 @@
+{
+  "run_id": "S1-B-01",
+  "scenario": "S1",
+  "condition": "B",
+  "llm": "claude-haiku-4-5",
+  "role": "n/a (no roles in the baseline)",
+  "timestamp_start": "2026-08-20T20:31:55+03:00",
+  "timestamp_terminal": "2026-08-20T20:32:30+03:00",
+  "termination_path": "shipped",
+  "turns": 1,
+  "founder_interactions": [
+    {
+      "seq": 1,
+      "kind": "paste_brief",
+      "at": "2026-08-20T20:32:01+03:00",
+      "feedback": null,
+      "chars_typed": 1577
+    },
+    {
+      "seq": 2,
+      "kind": "approve",
+      "at": "2026-08-20T20:32:30+03:00",
+      "feedback": null,
+      "chars_typed": 0
+    },
+    {
+      "seq": 3,
+      "kind": "copy_out",
+      "at": "2026-08-20T20:32:30+03:00",
+      "feedback": null,
+      "chars_typed": 0
+    }
+  ],
+  "gated_actions": [],
+  "tokens": {
+    "input": 422,
+    "output": 1024
+  },
+  "llm_latency_s": 12.933,
+  "wall_clock_s": 34.777,
+  "final_artifact_sha256": "c9c16937a9cabd77b36348f6fe69dc50674882264498cc9f50f7f2718b8a65ab",
+  "artifact_path": "artifacts/S1-B-01.txt",
+  "schema_version": 1,
+  "notes": "Launch announcement for Passly · channel=email · baseline chat loop"
+}

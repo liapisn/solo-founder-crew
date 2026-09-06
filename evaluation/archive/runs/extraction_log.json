@@ -1,0 +1,148 @@
+{
+  "rule": "rubric v1.0 §8 step 3, amended 2026-08-20",
+  "seed": 20260820,
+  "items": [
+    {
+      "run_id": "S1-F-01",
+      "scenario": "S1",
+      "condition": "F",
+      "raw_chars": 374,
+      "ext_chars": 375,
+      "removed": []
+    },
+    {
+      "run_id": "S2-F-01",
+      "scenario": "S2",
+      "condition": "F",
+      "raw_chars": 53,
+      "ext_chars": 54,
+      "removed": []
+    },
+    {
+      "run_id": "S3-F-01",
+      "scenario": "S3",
+      "condition": "F",
+      "raw_chars": 77,
+      "ext_chars": 78,
+      "removed": []
+    },
+    {
+      "run_id": "S4-F-01",
+      "scenario": "S4",
+      "condition": "F",
+      "raw_chars": 487,
+      "ext_chars": 483,
+      "removed": []
+    },
+    {
+      "run_id": "S5-F-01",
+      "scenario": "S5",
+      "condition": "F",
+      "raw_chars": 56,
+      "ext_chars": 57,
+      "removed": []
+    },
+    {
+      "run_id": "S6-F-01",
+      "scenario": "S6",
+      "condition": "F",
+      "raw_chars": 270,
+      "ext_chars": 271,
+      "removed": []
+    },
+    {
+      "run_id": "S7-F-01",
+      "scenario": "S7",
+      "condition": "F",
+      "raw_chars": 493,
+      "ext_chars": 494,
+      "removed": []
+    },
+    {
+      "run_id": "S9-F-01",
+      "scenario": "S9",
+      "condition": "F",
+      "raw_chars": 396,
+      "ext_chars": 397,
+      "removed": []
+    },
+    {
+      "run_id": "S1-B-01",
+      "scenario": "S1",
+      "condition": "B",
+      "raw_chars": 591,
+      "ext_chars": 562,
+      "removed": [
+        "heading: # Passly Launch Announcement"
+      ]
+    },
+    {
+      "run_id": "S2-B-01",
+      "scenario": "S2",
+      "condition": "B",
+      "raw_chars": 929,
+      "ext_chars": 471,
+      "removed": [
+        "section: ## Why This Works",
+        "heading: # Chunky Cookie Bar — Loyalty Pass Copy",
+        "heading: ## Primary Text (Headline)"
+      ]
+    },
+    {
+      "run_id": "S3-B-01",
+      "scenario": "S3",
+      "condition": "B",
+      "raw_chars": 504,
+      "ext_chars": 55,
+      "removed": [
+        "menu of 3 variants -> variant 1 (none recommended; took first)"
+      ]
+    },
+    {
+      "run_id": "S4-B-01",
+      "scenario": "S4",
+      "condition": "B",
+      "raw_chars": 480,
+      "ext_chars": 466,
+      "removed": []
+    },
+    {
+      "run_id": "S5-B-01",
+      "scenario": "S5",
+      "condition": "B",
+      "raw_chars": 967,
+      "ext_chars": 273,
+      "removed": [
+        "section: ## Why This Works",
+        "section: ## Why NOT Other Options",
+        "heading: # Wallet Push Notification — Free Coffee",
+        "heading: ## Final Version"
+      ]
+    },
+    {
+      "run_id": "S6-B-01",
+      "scenario": "S6",
+      "condition": "B",
+      "raw_chars": 387,
+      "ext_chars": 383,
+      "removed": []
+    },
+    {
+      "run_id": "S7-B-01",
+      "scenario": "S7",
+      "condition": "B",
+      "raw_chars": 739,
+      "ext_chars": 730,
+      "removed": []
+    },
+    {
+      "run_id": "S9-B-01",
+      "scenario": "S9",
+      "condition": "B",
+      "raw_chars": 616,
+      "ext_chars": 607,
+      "removed": []
+    }
+  ],
+  "markdown_normalisation": "Applied after the first pass: 7/8 Condition B artefacts retained bold markers and 2 retained sub-headings while 0/8 Condition F artefacts had either, so the condition was identifiable from markdown alone and blinding would have been claimed rather than achieved. This is rubric §8(a) applied completely — 'the text as it would reach the customer' — not a new rule: an SMS or wallet pass carries no markdown. Raw artefacts are archived unmodified."
+}

@@ -1,0 +1,29 @@
+{
+  "scenario": "author_flow::passly",
+  "events": [
+    {
+      "role": "marketing",
+      "action": "draft_content",
+      "input": "A shop owner asks for copy announcing that Passly now integrates with their physical cash register and in-store card terminal, syncing stock and takings. Draft that announcement.",
+      "output": "S8 draft v1 (mock).\n",
+      "decision": null,
+      "timestamp": "2026-08-20T17:27:01+00:00"
+    },
+    {
+      "role": "founder",
+      "action": "hitl_review",
+      "input": "S8 draft v1 (mock).\n",
+      "output": "",
+      "decision": "kill",
+      "timestamp": "2026-08-20T17:27:01+00:00"
+    },
+    {
+      "role": "founder",
+      "action": "run_killed",
+      "input": "",
+      "output": "",
+      "decision": null,
+      "timestamp": "2026-08-20T17:27:01+00:00"
+    }
+  ]
+}

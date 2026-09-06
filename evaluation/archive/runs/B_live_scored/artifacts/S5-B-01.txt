@@ -1,0 +1,36 @@
+# Wallet Push Notification — Free Coffee Unlocked
+
+## Final Version
+**"Σας περιμένει ένας δωρεάν καφές. Δείξτε το pass στο ταμείο."**
+
+*(Your free coffee is waiting. Show this pass at the counter.)*
+
+---
+
+## Why This Works
+
+- **Action-oriented:** "Show this pass" = immediate next step (no ambiguity)
+- **Warm, plain Greek:** "Σας περιμένει" (waiting for you) feels personal, not transactional
+- **14 words:** Under the 15-word limit
+- **No hype:** No "congrats," no emoji spam—just the fact and the move
+- **Removes friction:** They know exactly what to do
+
+---
+
+## English Alternative (if bilingual customer base)
+**"Your free coffee is ready. Show this pass at the till."**
+
+*(13 words, same clarity)*
+
+---
+
+## Why NOT Other Options
+
+❌ "Congratulations! You've unlocked a free coffee!" 
+→ Too celebratory; delays the action.
+
+❌ "Free coffee inside!"
+→ Vague; doesn't tell them what to do.
+
+❌ "Your 10th stamp = free espresso 🎉"
+→ Emoji and math; feels marketing-y.

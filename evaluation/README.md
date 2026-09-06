@@ -2,13 +2,13 @@
 
 Runs the two conditions the thesis compares. The instrument — dimensions,
 anchors, scenario set, scoring procedure, validity threats — lives in
-[`Diplomatic/05_Drafts/Ch5_Evaluation_Rubric.md`](../../Diplomatic/05_Drafts/Ch5_Evaluation_Rubric.md).
+[`evaluation/archive/RUBRIC.md`](archive/RUBRIC.md).
 This directory is only the machinery.
 
 **Freeze the rubric before the first scored run.** Its pre-registration has no
 external witness (the supervisor engages once, on the written draft), so the git
 commit order *is* the evidence that the instrument predates the data. A frozen
-rubric committed before any run in `Ch5_Eval_Runs/` is the claim; a rubric edited
+rubric committed before any run in `archive/runs/` is the claim; a rubric edited
 afterwards is not.
 
 ## Run it
@@ -29,7 +29,7 @@ python -m evaluation.run_condition_b --scenarios S1,S2
 python -m evaluation.baseline_repl --scenario S1
 ```
 
-Output goes to `Diplomatic/05_Drafts/Ch5_Eval_Runs/` (override with `--out`):
+Output went to the thesis repository during the study and is archived at `evaluation/archive/runs/` (override with `--out`):
 one decision log per run, `artifacts/<run_id>.txt`, `traces/<run_id>.trace.json`,
 and a `summary_F_*.json` / `summary_B_live.json` carrying the Panel B readings.
 

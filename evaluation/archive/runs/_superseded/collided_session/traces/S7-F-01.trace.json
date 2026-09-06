@@ -1,0 +1,29 @@
+{
+  "scenario": "author_flow::passly",
+  "events": [
+    {
+      "role": "marketing",
+      "action": "draft_content",
+      "input": "A prospective shop owner says they tried SMS marketing once and it felt spammy to their customers. Draft a short reply that takes the objection seriously. Under 130 words.",
+      "output": "Καταλαβαίνω — πολλές φορές τα SMS γίνονται ενοχλητικά. Το πρόβλημα δεν είναι το SMS, είναι *πότε* και *τι* στέλνεις.\n\nΜε το Passly, δεν είναι μαζική αποστολή. Είναι το αντίθετο: στέλνεις την προσφορά μόνο σε εκείνους που την επιλέγουν — μέσα στο Apple ή Google Wallet τους, όπου άλλως ψάχνουν κάρτες και κουπόνια.\n\nΤο αποτέλεσμα; Οι πελάτες σου δεν νιώθουν ότι τους εισβάλλεις. Αντιθέτως, είναι εκεί…",
+      "decision": null,
+      "timestamp": "2026-08-20T17:16:15+00:00"
+    },
+    {
+      "role": "founder",
+      "action": "hitl_review",
+      "input": "Καταλαβαίνω — πολλές φορές τα SMS γίνονται ενοχλητικά. Το πρόβλημα δεν είναι το SMS, είναι *πότε* και *τι* στέλνεις.\n\nΜε το Passly, δεν είναι μαζική αποστολή. Είναι το αντίθετο: στέλνεις την προσφορά μόνο σε εκείνους που την επιλέγουν — μέσα στο Apple ή Google Wallet τους, όπου άλλως ψάχνουν κάρτες και κουπόνια.\n\nΤο αποτέλεσμα; Οι πελάτες σου δεν νιώθουν ότι τους εισβάλλεις. Αντιθέτως, είναι εκεί…",
+      "output": "",
+      "decision": "approve",
+      "timestamp": "2026-08-20T17:16:15+00:00"
+    },
+    {
+      "role": "marketing",
+      "action": "publisher_tool.publish",
+      "input": "528 chars",
+      "output": "shipped:528chars",
+      "decision": null,
+      "timestamp": "2026-08-20T17:16:15+00:00"
+    }
+  ]
+}

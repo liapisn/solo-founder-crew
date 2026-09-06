@@ -1,0 +1,37 @@
+{
+  "run_id": "S2-F-01",
+  "scenario": "S2",
+  "condition": "F",
+  "llm": "claude-haiku-4-5",
+  "role": "marketing",
+  "timestamp_start": "2026-08-20T20:28:08+03:00",
+  "timestamp_terminal": "2026-08-20T20:28:10+03:00",
+  "termination_path": "shipped",
+  "turns": 1,
+  "founder_interactions": [
+    {
+      "seq": 1,
+      "kind": "approve",
+      "at": "2026-08-20T20:28:10+03:00",
+      "feedback": null,
+      "chars_typed": 0
+    }
+  ],
+  "gated_actions": [
+    {
+      "action": "final_approval_before_publish",
+      "escalated": true,
+      "resolved": "approve"
+    }
+  ],
+  "tokens": {
+    "input": 1001,
+    "output": 62
+  },
+  "llm_latency_s": 1.796,
+  "wall_clock_s": 1.804,
+  "final_artifact_sha256": "802c311185b9fb135061929db3fca6c466668a1f425fa93ffd7f45dbfe6a3af4",
+  "artifact_path": "artifacts/S2-F-01.txt",
+  "schema_version": 1,
+  "notes": "Loyalty-card offer copy, Chunky Cookie Bar · channel=apple_wallet · Shortest happy path; terse-format discipline"
+}

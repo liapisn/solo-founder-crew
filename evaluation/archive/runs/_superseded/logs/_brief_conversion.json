@@ -1,0 +1,11 @@
+{
+  "what": "One-time schema-to-prose conversion of passly_brief.json for Condition B.",
+  "rule": "Amortised: elapsed_seconds/10 and founder_interactions/10 are added to each Condition B run's M2 and M1.",
+  "decided": "2026-08-20, before any run.",
+  "timestamp_start": null,
+  "timestamp_end": null,
+  "elapsed_seconds": null,
+  "founder_interactions": null,
+  "prose_brief_path": "artifacts/_prose_brief.txt",
+  "notes": "Report the raw cost and the per-run share separately in the scorecard so a reader can undo the amortisation."
+}

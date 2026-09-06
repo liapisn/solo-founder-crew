@@ -1,0 +1,33 @@
+{
+  "run_id": "S2-B-03",
+  "scenario": "S2",
+  "condition": "B",
+  "timestamp_start": null,
+  "timestamp_terminal": null,
+  "llm": "claude-haiku-4-5",
+  "role": "marketing",
+  "termination_path": null,
+  "turns": null,
+  "founder_interactions": [
+    {
+      "seq": 1,
+      "type": null,
+      "feedback": null,
+      "at": null
+    }
+  ],
+  "gated_actions": [
+    {
+      "action": "publish",
+      "escalated": false,
+      "resolved": null
+    }
+  ],
+  "tokens": {
+    "input": 0,
+    "output": 0
+  },
+  "final_artifact_sha256": null,
+  "artifact_path": null,
+  "notes": "E4b live-divergence re-run (rubric v1.0 §4 subset). Not Panel-A scored. Only final_artifact_sha256 and the artefact text are read from this run."
+}

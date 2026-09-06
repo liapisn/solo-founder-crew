@@ -1,0 +1,37 @@
+{
+  "run_id": "S5-F-01",
+  "scenario": "S5",
+  "condition": "F",
+  "llm": "claude-haiku-4-5",
+  "role": "marketing",
+  "timestamp_start": "2026-08-20T20:16:00+03:00",
+  "timestamp_terminal": "2026-08-20T20:16:01+03:00",
+  "termination_path": "shipped",
+  "turns": 1,
+  "founder_interactions": [
+    {
+      "seq": 1,
+      "kind": "approve",
+      "at": "2026-08-20T20:16:01+03:00",
+      "feedback": null,
+      "chars_typed": 0
+    }
+  ],
+  "gated_actions": [
+    {
+      "action": "final_approval_before_publish",
+      "escalated": true,
+      "resolved": "approve"
+    }
+  ],
+  "tokens": {
+    "input": 988,
+    "output": 43
+  },
+  "llm_latency_s": 1.348,
+  "wall_clock_s": 1.363,
+  "final_artifact_sha256": "125694c2f990175967f828c1875e81d6516c5efef9d96ad935c265ad7f01090e",
+  "artifact_path": "artifacts/S5-F-01.txt",
+  "schema_version": 1,
+  "notes": "Pass-update push, stamps goal reached · channel=apple_wallet · Extreme brevity; format adherence"
+}

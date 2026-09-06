@@ -1,0 +1,45 @@
+{
+  "scenario": "author_flow::passly",
+  "events": [
+    {
+      "role": "marketing",
+      "action": "draft_content",
+      "input": "Draft a short email to customers of a demo shop who hold a loyalty pass but have not visited in two months. Warm, not guilt-tripping. Under 120 words.",
+      "output": "Καλησπέρα,\n\nΣας έχουμε στη σκέψη μας. Περάσαν δύο μήνες κι αποψε θέλαμε να σας θυμίσουμε ότι υπάρχει κάτι ωραίο περιμένοντάς σας.\n\nΑυτή την εβδομάδα, ένα δωράκι για τις επόμενες τρεις σας επισκέψεις — απλά δείξτε το pass σας στο πορτοφόλι του κινητού.\n\nΔεν είναι αναγκαστικό και δεν θα σας ενοχλούμε. Απλά ήθελα να ξέρετε ότι υπάρχουμε εδώ.\n\nΘα περιμένουμε να σας ξανακούμε.\n\n---\n\nHi there,\n\nWe've b…",
+      "decision": null,
+      "timestamp": "2026-08-20T17:27:23+00:00"
+    },
+    {
+      "role": "founder",
+      "action": "hitl_review",
+      "input": "Καλησπέρα,\n\nΣας έχουμε στη σκέψη μας. Περάσαν δύο μήνες κι αποψε θέλαμε να σας θυμίσουμε ότι υπάρχει κάτι ωραίο περιμένοντάς σας.\n\nΑυτή την εβδομάδα, ένα δωράκι για τις επόμενες τρεις σας επισκέψεις — απλά δείξτε το pass σας στο πορτοφόλι του κινητού.\n\nΔεν είναι αναγκαστικό και δεν θα σας ενοχλούμε. Απλά ήθελα να ξέρετε ότι υπάρχουμε εδώ.\n\nΘα περιμένουμε να σας ξανακούμε.\n\n---\n\nHi there,\n\nWe've b…",
+      "output": "Μυρίζει ενοχή — «σε χάσαμε», «πού είσαι». Κανείς δεν θέλει να του θυμίζουν ότι έλειπε. Γράψε το σαν να άνοιξε κάτι νέο και τον καλείς, χωρίς αναφορά στο ότι λείπει.",
+      "decision": "reject",
+      "timestamp": "2026-08-20T17:27:23+00:00"
+    },
+    {
+      "role": "marketing",
+      "action": "revise_content",
+      "input": "Μυρίζει ενοχή — «σε χάσαμε», «πού είσαι». Κανείς δεν θέλει να του θυμίζουν ότι έλειπε. Γράψε το σαν να άνοιξε κάτι νέο και τον καλείς, χωρίς αναφορά στο ότι λείπει.",
+      "output": "Καλησπέρα,\n\nΞεκίνησε κάτι καινούργιο στο κατάστημά μας — τρεις δωρεάν επισκέψεις για όσους έχουν το pass τους στο πορτοφόλι. Απλά δείξτε το όταν περάσετε.\n\nΤίποτα δύσκολο, τίποτα νέο να κατεβάσετε. Απλώς ένας λόγος να ξαναδούμε ο ένας τον άλλον.\n\nΠεριμένουμε.\n\n---\n\nHi there,\n\nSomething new just started at our place — three free visits for anyone who has the pass in their wallet. Just show it when…",
+      "decision": null,
+      "timestamp": "2026-08-20T17:27:27+00:00"
+    },
+    {
+      "role": "founder",
+      "action": "hitl_review",
+      "input": "Καλησπέρα,\n\nΞεκίνησε κάτι καινούργιο στο κατάστημά μας — τρεις δωρεάν επισκέψεις για όσους έχουν το pass τους στο πορτοφόλι. Απλά δείξτε το όταν περάσετε.\n\nΤίποτα δύσκολο, τίποτα νέο να κατεβάσετε. Απλώς ένας λόγος να ξαναδούμε ο ένας τον άλλον.\n\nΠεριμένουμε.\n\n---\n\nHi there,\n\nSomething new just started at our place — three free visits for anyone who has the pass in their wallet. Just show it when…",
+      "output": "",
+      "decision": "approve",
+      "timestamp": "2026-08-20T17:27:27+00:00"
+    },
+    {
+      "role": "marketing",
+      "action": "publisher_tool.publish",
+      "input": "487 chars",
+      "output": "shipped:487chars",
+      "decision": null,
+      "timestamp": "2026-08-20T17:27:27+00:00"
+    }
+  ]
+}

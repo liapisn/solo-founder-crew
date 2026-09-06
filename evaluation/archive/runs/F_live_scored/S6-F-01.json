@@ -1,0 +1,49 @@
+{
+  "run_id": "S6-F-01",
+  "scenario": "S6",
+  "condition": "F",
+  "llm": "claude-haiku-4-5",
+  "role": "marketing",
+  "timestamp_start": "2026-08-20T20:27:28+03:00",
+  "timestamp_terminal": "2026-08-20T20:27:36+03:00",
+  "termination_path": "shipped",
+  "turns": 2,
+  "founder_interactions": [
+    {
+      "seq": 1,
+      "kind": "reject",
+      "at": "2026-08-20T20:27:34+03:00",
+      "feedback": "Πολλά βήματα μαζεμένα, θα τα παρατήσει. Ένα πράγμα να κάνει τώρα: να φτιάξει την πρώτη κάρτα. Τα υπόλοιπα άστα για μετά.",
+      "chars_typed": 0
+    },
+    {
+      "seq": 2,
+      "kind": "approve",
+      "at": "2026-08-20T20:27:36+03:00",
+      "feedback": null,
+      "chars_typed": 0
+    }
+  ],
+  "gated_actions": [
+    {
+      "action": "final_approval_before_publish",
+      "escalated": true,
+      "resolved": "reject"
+    },
+    {
+      "action": "final_approval_before_publish",
+      "escalated": true,
+      "resolved": "approve"
+    }
+  ],
+  "tokens": {
+    "input": 2455,
+    "output": 560
+  },
+  "llm_latency_s": 7.692,
+  "wall_clock_s": 7.712,
+  "final_artifact_sha256": "07fdbac0fd91f90920bb3edd2bb8a51e307344990aac947b18f774a09687bb67",
+  "artifact_path": "artifacts/S6-F-01.txt",
+  "schema_version": 1,
+  "notes": "SMB onboarding welcome, κομμωτήριο · channel=email · Segment specificity; single call to action"
+}

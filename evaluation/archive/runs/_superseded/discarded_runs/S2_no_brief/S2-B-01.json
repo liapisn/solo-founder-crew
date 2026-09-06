@@ -1,0 +1,45 @@
+{
+  "run_id": "S2-B-01",
+  "scenario": "S2",
+  "condition": "B",
+  "llm": "claude-haiku-4-5",
+  "role": "n/a (no roles in the baseline)",
+  "timestamp_start": "2026-08-20T20:38:27+03:00",
+  "timestamp_terminal": "2026-08-20T20:39:29+03:00",
+  "termination_path": "shipped",
+  "turns": 1,
+  "founder_interactions": [
+    {
+      "seq": 1,
+      "kind": "prompt",
+      "at": "2026-08-20T20:39:07+03:00",
+      "feedback": null,
+      "chars_typed": 232
+    },
+    {
+      "seq": 2,
+      "kind": "approve",
+      "at": "2026-08-20T20:39:29+03:00",
+      "feedback": null,
+      "chars_typed": 0
+    },
+    {
+      "seq": 3,
+      "kind": "copy_out",
+      "at": "2026-08-20T20:39:29+03:00",
+      "feedback": null,
+      "chars_typed": 0
+    }
+  ],
+  "gated_actions": [],
+  "tokens": {
+    "input": 60,
+    "output": 37
+  },
+  "llm_latency_s": 1.259,
+  "wall_clock_s": 61.224,
+  "final_artifact_sha256": "f81fe3cdde0dbe0a60818611efa5f49dfd8a6cbf09c96df65c055107758ee83c",
+  "artifact_path": "artifacts/S2-B-01.txt",
+  "schema_version": 1,
+  "notes": "Loyalty-card offer copy, Chunky Cookie Bar · channel=apple_wallet · baseline chat loop"
+}

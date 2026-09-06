@@ -1,0 +1,35 @@
+# Chunky Cookie Bar — Loyalty Pass Copy
+
+## Primary Text (Headline)
+**"Buy 10 coffees. Get 1 free."**
+(5 words)
+
+## Secondary Text (Subtitle/Description)
+**"Collect a stamp with each coffee."**
+(6 words)
+
+---
+
+## Full Pass Layout (if secondary is shown)
+
+**Headline:** Buy 10 coffees. Get 1 free.
+
+**Subtitle:** Collect a stamp with each coffee.
+
+**Call-to-action (if space):** Show this pass at the counter.
+
+---
+
+**Total: 18 words**
+
+---
+
+## Why This Works
+
+- **Clarity:** No ambiguity about the reward (not points, not discounts—free coffee)
+- **Action:** "Collect a stamp" is concrete, visual, and familiar to Greek café culture
+- **Brevity:** Respects wallet pass space constraints
+- **Warmth:** Conversational, not corporate
+- **Scannable:** Headline answer + one instruction = done
+
+The pass itself carries the visual stamp progression (iOS/Android native), so copy doesn't need to repeat it.

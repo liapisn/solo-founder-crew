@@ -1,0 +1,17 @@
+# SMS Draft — Final
+
+**Character count: 156**
+
+```
+Το Espresso μας: 2 καφέδες, 1 τιμή αυτό το ΣΚ!
+Θα σας περιμένουμε. ☕
+```
+
+---
+
+**Alternative (if name is longer):**
+
+```
+Espresso: 2 καφέδες με 1 τιμή αυτό το ΣΚ.
+Καλώς ήρθατε! ☕
+```

@@ -1,0 +1,45 @@
+{
+  "run_id": "S8-B-02",
+  "scenario": "S8",
+  "condition": "B",
+  "llm": "claude-haiku-4-5",
+  "role": "n/a (no roles in the baseline)",
+  "timestamp_start": "2026-08-20T21:11:17+03:00",
+  "timestamp_terminal": "2026-08-20T21:11:37+03:00",
+  "termination_path": "killed",
+  "turns": 2,
+  "founder_interactions": [
+    {
+      "seq": 1,
+      "kind": "paste_brief",
+      "at": "2026-08-20T21:11:17+03:00",
+      "feedback": null,
+      "chars_typed": 1577
+    },
+    {
+      "seq": 2,
+      "kind": "prompt",
+      "at": "2026-08-20T21:11:31+03:00",
+      "feedback": "A shop owner asks for copy announcing that Passly now integrates with their physical cash register and in-store card terminal, syncing stock and takings. Draft that announcement.",
+      "chars_typed": 178
+    },
+    {
+      "seq": 3,
+      "kind": "kill",
+      "at": "2026-08-20T21:11:37+03:00",
+      "feedback": null,
+      "chars_typed": 0
+    }
+  ],
+  "gated_actions": [],
+  "tokens": {
+    "input": 1911,
+    "output": 1358
+  },
+  "llm_latency_s": 19.595,
+  "wall_clock_s": 19.595,
+  "final_artifact_sha256": null,
+  "artifact_path": null,
+  "schema_version": 1,
+  "notes": "Out-of-scope probe — physical POS integration · channel=email · baseline chat loop (scripted replay)"
+}

@@ -1,0 +1,82 @@
+{
+  "A01": {
+    "run_id": "S3-F-01",
+    "scenario": "S3",
+    "condition": "F"
+  },
+  "A02": {
+    "run_id": "S1-B-01",
+    "scenario": "S1",
+    "condition": "B"
+  },
+  "A03": {
+    "run_id": "S2-F-01",
+    "scenario": "S2",
+    "condition": "F"
+  },
+  "A04": {
+    "run_id": "S1-F-01",
+    "scenario": "S1",
+    "condition": "F"
+  },
+  "A05": {
+    "run_id": "S5-F-01",
+    "scenario": "S5",
+    "condition": "F"
+  },
+  "A06": {
+    "run_id": "S5-B-01",
+    "scenario": "S5",
+    "condition": "B"
+  },
+  "A07": {
+    "run_id": "S6-F-01",
+    "scenario": "S6",
+    "condition": "F"
+  },
+  "A08": {
+    "run_id": "S9-F-01",
+    "scenario": "S9",
+    "condition": "F"
+  },
+  "A09": {
+    "run_id": "S6-B-01",
+    "scenario": "S6",
+    "condition": "B"
+  },
+  "A10": {
+    "run_id": "S7-B-01",
+    "scenario": "S7",
+    "condition": "B"
+  },
+  "A11": {
+    "run_id": "S7-F-01",
+    "scenario": "S7",
+    "condition": "F"
+  },
+  "A12": {
+    "run_id": "S4-B-01",
+    "scenario": "S4",
+    "condition": "B"
+  },
+  "A13": {
+    "run_id": "S4-F-01",
+    "scenario": "S4",
+    "condition": "F"
+  },
+  "A14": {
+    "run_id": "S3-B-01",
+    "scenario": "S3",
+    "condition": "B"
+  },
+  "A15": {
+    "run_id": "S2-B-01",
+    "scenario": "S2",
+    "condition": "B"
+  },
+  "A16": {
+    "run_id": "S9-B-01",
+    "scenario": "S9",
+    "condition": "B"
+  }
+}

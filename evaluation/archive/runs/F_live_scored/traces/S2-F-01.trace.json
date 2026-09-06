@@ -1,0 +1,29 @@
+{
+  "scenario": "author_flow::passly",
+  "events": [
+    {
+      "role": "marketing",
+      "action": "draft_content",
+      "input": "Draft the offer copy that appears on a loyalty wallet pass for a demo shop called Chunky Cookie Bar: a stamp card where the tenth coffee is free. Wallet passes show very little text — keep it under 25 words and make every word work.",
+      "output": "COFFEE IS FREE\nBUY 9, GET 1 FREE\nAT CHUNKY COOKIE BAR",
+      "decision": null,
+      "timestamp": "2026-08-20T17:27:13+00:00"
+    },
+    {
+      "role": "founder",
+      "action": "hitl_review",
+      "input": "COFFEE IS FREE\nBUY 9, GET 1 FREE\nAT CHUNKY COOKIE BAR",
+      "output": "",
+      "decision": "approve",
+      "timestamp": "2026-08-20T17:27:13+00:00"
+    },
+    {
+      "role": "marketing",
+      "action": "publisher_tool.publish",
+      "input": "53 chars",
+      "output": "shipped:53chars",
+      "decision": null,
+      "timestamp": "2026-08-20T17:27:13+00:00"
+    }
+  ]
+}

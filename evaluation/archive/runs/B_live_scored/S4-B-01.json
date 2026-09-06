@@ -1,0 +1,59 @@
+{
+  "run_id": "S4-B-01",
+  "scenario": "S4",
+  "condition": "B",
+  "llm": "claude-haiku-4-5",
+  "role": "n/a (no roles in the baseline)",
+  "timestamp_start": "2026-08-20T21:06:15+03:00",
+  "timestamp_terminal": "2026-08-20T21:06:38+03:00",
+  "termination_path": "shipped",
+  "turns": 3,
+  "founder_interactions": [
+    {
+      "seq": 1,
+      "kind": "paste_brief",
+      "at": "2026-08-20T21:06:15+03:00",
+      "feedback": null,
+      "chars_typed": 1577
+    },
+    {
+      "seq": 2,
+      "kind": "prompt",
+      "at": "2026-08-20T21:06:30+03:00",
+      "feedback": "Draft a short email to customers of a demo shop who hold a loyalty pass but have not visited in two months. Warm, not guilt-tripping. Under 120 words.",
+      "chars_typed": 150
+    },
+    {
+      "seq": 3,
+      "kind": "prompt",
+      "at": "2026-08-20T21:06:34+03:00",
+      "feedback": "Μυρίζει ενοχή — «σε χάσαμε», «πού είσαι». Κανείς δεν θέλει να του θυμίζουν ότι έλειπε. Γράψε το σαν να άνοιξε κάτι νέο και τον καλείς, χωρίς αναφορά στο ότι λείπει.",
+      "chars_typed": 164
+    },
+    {
+      "seq": 4,
+      "kind": "approve",
+      "at": "2026-08-20T21:06:38+03:00",
+      "feedback": null,
+      "chars_typed": 0
+    },
+    {
+      "seq": 5,
+      "kind": "copy_out",
+      "at": "2026-08-20T21:06:38+03:00",
+      "feedback": null,
+      "chars_typed": 0
+    }
+  ],
+  "gated_actions": [],
+  "tokens": {
+    "input": 3848,
+    "output": 1581
+  },
+  "llm_latency_s": 23.149,
+  "wall_clock_s": 23.151,
+  "final_artifact_sha256": "fcf497d38f451b3f7e3a5d127aa648f14d6d11e5bfcc8a0ea48bbbaa7d713a47",
+  "artifact_path": "artifacts/S4-B-01.txt",
+  "schema_version": 1,
+  "notes": "Re-engagement message, lapsed customers · channel=email · baseline chat loop (scripted replay)"
+}

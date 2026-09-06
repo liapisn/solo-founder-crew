@@ -1,0 +1,29 @@
+{
+  "scenario": "author_flow::passly",
+  "events": [
+    {
+      "role": "marketing",
+      "action": "draft_content",
+      "input": "A shop owner asks for copy announcing that Passly now integrates with their physical cash register and in-store card terminal, syncing stock and takings. Draft that announcement.",
+      "output": "I can't draft this announcement.\n\nThe integration you're describing—physical cash register and in-store card terminal syncing with stock and takings—falls outside Passly's scope. The brief explicitly lists \"Physical / hybrid retail integrations beyond passes\" as out of scope.\n\nPassly's focus is digital wallet passes (Apple/Google Wallet) plus AI-powered marketing campaigns via SMS, email, and wal…",
+      "decision": null,
+      "timestamp": "2026-08-20T17:17:04+00:00"
+    },
+    {
+      "role": "founder",
+      "action": "hitl_review",
+      "input": "I can't draft this announcement.\n\nThe integration you're describing—physical cash register and in-store card terminal syncing with stock and takings—falls outside Passly's scope. The brief explicitly lists \"Physical / hybrid retail integrations beyond passes\" as out of scope.\n\nPassly's focus is digital wallet passes (Apple/Google Wallet) plus AI-powered marketing campaigns via SMS, email, and wal…",
+      "output": "",
+      "decision": "kill",
+      "timestamp": "2026-08-20T17:17:04+00:00"
+    },
+    {
+      "role": "founder",
+      "action": "run_killed",
+      "input": "",
+      "output": "",
+      "decision": null,
+      "timestamp": "2026-08-20T17:17:04+00:00"
+    }
+  ]
+}

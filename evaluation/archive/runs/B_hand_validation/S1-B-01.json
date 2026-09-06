@@ -1,0 +1,59 @@
+{
+  "run_id": "S1-B-01",
+  "scenario": "S1",
+  "condition": "B",
+  "llm": "claude-haiku-4-5",
+  "role": "n/a (no roles in the baseline)",
+  "timestamp_start": "2026-08-20T20:33:47+03:00",
+  "timestamp_terminal": "2026-08-20T20:34:23+03:00",
+  "termination_path": "shipped",
+  "turns": 3,
+  "founder_interactions": [
+    {
+      "seq": 1,
+      "kind": "paste_brief",
+      "at": "2026-08-20T20:33:54+03:00",
+      "feedback": null,
+      "chars_typed": 1577
+    },
+    {
+      "seq": 2,
+      "kind": "prompt",
+      "at": "2026-08-20T20:34:07+03:00",
+      "feedback": null,
+      "chars_typed": 110
+    },
+    {
+      "seq": 3,
+      "kind": "prompt",
+      "at": "2026-08-20T20:34:11+03:00",
+      "feedback": null,
+      "chars_typed": 161
+    },
+    {
+      "seq": 4,
+      "kind": "approve",
+      "at": "2026-08-20T20:34:23+03:00",
+      "feedback": null,
+      "chars_typed": 0
+    },
+    {
+      "seq": 5,
+      "kind": "copy_out",
+      "at": "2026-08-20T20:34:23+03:00",
+      "feedback": null,
+      "chars_typed": 0
+    }
+  ],
+  "gated_actions": [],
+  "tokens": {
+    "input": 3696,
+    "output": 1576
+  },
+  "llm_latency_s": 22.012,
+  "wall_clock_s": 35.699,
+  "final_artifact_sha256": "12bcd6c844433a52b08dd9eda08465438793969b7d04a113920d53cb892f625b",
+  "artifact_path": "artifacts/S1-B-01.txt",
+  "schema_version": 1,
+  "notes": "Launch announcement for Passly · channel=email · baseline chat loop"
+}

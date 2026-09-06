@@ -1,0 +1,59 @@
+{
+  "run_id": "S6-B-01",
+  "scenario": "S6",
+  "condition": "B",
+  "llm": "claude-haiku-4-5",
+  "role": "n/a (no roles in the baseline)",
+  "timestamp_start": "2026-08-20T21:06:56+03:00",
+  "timestamp_terminal": "2026-08-20T21:07:27+03:00",
+  "termination_path": "shipped",
+  "turns": 3,
+  "founder_interactions": [
+    {
+      "seq": 1,
+      "kind": "paste_brief",
+      "at": "2026-08-20T21:06:56+03:00",
+      "feedback": null,
+      "chars_typed": 1577
+    },
+    {
+      "seq": 2,
+      "kind": "prompt",
+      "at": "2026-08-20T21:07:10+03:00",
+      "feedback": "Draft the welcome email a Greek hair salon owner receives right after signing up to Passly, before they have created their first pass. Tell them what to do next. Under 130 words.",
+      "chars_typed": 178
+    },
+    {
+      "seq": 3,
+      "kind": "prompt",
+      "at": "2026-08-20T21:07:15+03:00",
+      "feedback": "Πολλά βήματα μαζεμένα, θα τα παρατήσει. Ένα πράγμα να κάνει τώρα: να φτιάξει την πρώτη κάρτα. Τα υπόλοιπα άστα για μετά.",
+      "chars_typed": 120
+    },
+    {
+      "seq": 4,
+      "kind": "approve",
+      "at": "2026-08-20T21:07:27+03:00",
+      "feedback": null,
+      "chars_typed": 0
+    },
+    {
+      "seq": 5,
+      "kind": "copy_out",
+      "at": "2026-08-20T21:07:27+03:00",
+      "feedback": null,
+      "chars_typed": 0
+    }
+  ],
+  "gated_actions": [],
+  "tokens": {
+    "input": 3824,
+    "output": 1623
+  },
+  "llm_latency_s": 30.076,
+  "wall_clock_s": 30.078,
+  "final_artifact_sha256": "5ad7a87d22d6f2a4810fbaa474ab8ad9e9afcccd79cb02a74e6945cc92426908",
+  "artifact_path": "artifacts/S6-B-01.txt",
+  "schema_version": 1,
+  "notes": "SMB onboarding welcome, κομμωτήριο · channel=email · baseline chat loop (scripted replay)"
+}

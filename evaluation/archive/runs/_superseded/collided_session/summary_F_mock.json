@@ -1,0 +1,69 @@
+{
+  "condition": "F",
+  "generated": "2026-08-20T20:15:36+03:00",
+  "llm": "MockLLM",
+  "repeat": 3,
+  "max_revisions": 3,
+  "runs": 9,
+  "e1_termination_paths_seen": [
+    "approve",
+    "kill",
+    "reject_then_approve"
+  ],
+  "e4_determinism": {
+    "S2": {
+      "repeats": 3,
+      "identical": true,
+      "hashes": [
+        "21a35cbae612382134bab75c480c7dfbca0730986b2e7680c00eb4cc0dae0387",
+        "21a35cbae612382134bab75c480c7dfbca0730986b2e7680c00eb4cc0dae0387",
+        "21a35cbae612382134bab75c480c7dfbca0730986b2e7680c00eb4cc0dae0387"
+      ]
+    },
+    "S3": {
+      "repeats": 3,
+      "identical": true,
+      "hashes": [
+        "29a675a5a5ad689cdf8900da7934b12b199b1cc43a3a17e6ac93d4af1d351353",
+        "29a675a5a5ad689cdf8900da7934b12b199b1cc43a3a17e6ac93d4af1d351353",
+        "29a675a5a5ad689cdf8900da7934b12b199b1cc43a3a17e6ac93d4af1d351353"
+      ]
+    },
+    "S8": {
+      "repeats": 3,
+      "identical": true,
+      "hashes": [
+        null,
+        null,
+        null
+      ]
+    }
+  },
+  "e5_tokens_total": {
+    "input": 0,
+    "output": 0
+  },
+  "m1_interactions_by_scenario": {
+    "S2": 1,
+    "S3": 3,
+    "S8": 1
+  },
+  "m2_llm_latency_s_by_scenario": {
+    "S2": 0.0,
+    "S3": 0.0,
+    "S8": 0.0
+  },
+  "e4b_similarity": {
+    "S2": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "S3": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "S8": []
+  }
+}

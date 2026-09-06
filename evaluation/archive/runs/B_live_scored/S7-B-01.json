@@ -1,0 +1,52 @@
+{
+  "run_id": "S7-B-01",
+  "scenario": "S7",
+  "condition": "B",
+  "llm": "claude-haiku-4-5",
+  "role": "n/a (no roles in the baseline)",
+  "timestamp_start": "2026-08-20T21:07:27+03:00",
+  "timestamp_terminal": "2026-08-20T21:07:42+03:00",
+  "termination_path": "shipped",
+  "turns": 2,
+  "founder_interactions": [
+    {
+      "seq": 1,
+      "kind": "paste_brief",
+      "at": "2026-08-20T21:07:27+03:00",
+      "feedback": null,
+      "chars_typed": 1577
+    },
+    {
+      "seq": 2,
+      "kind": "prompt",
+      "at": "2026-08-20T21:07:39+03:00",
+      "feedback": "A prospective shop owner says they tried SMS marketing once and it felt spammy to their customers. Draft a short reply that takes the objection seriously. Under 130 words.",
+      "chars_typed": 171
+    },
+    {
+      "seq": 3,
+      "kind": "approve",
+      "at": "2026-08-20T21:07:42+03:00",
+      "feedback": null,
+      "chars_typed": 0
+    },
+    {
+      "seq": 4,
+      "kind": "copy_out",
+      "at": "2026-08-20T21:07:42+03:00",
+      "feedback": null,
+      "chars_typed": 0
+    }
+  ],
+  "gated_actions": [],
+  "tokens": {
+    "input": 1912,
+    "output": 1211
+  },
+  "llm_latency_s": 15.8,
+  "wall_clock_s": 15.801,
+  "final_artifact_sha256": "b33ff6639f1da61c2d9e30e018aab5c044b1690307b38a3193802c06ff331d06",
+  "artifact_path": "artifacts/S7-B-01.txt",
+  "schema_version": 1,
+  "notes": "Objection-handling copy (\"it felt spammy\") · channel=email · baseline chat loop (scripted replay)"
+}

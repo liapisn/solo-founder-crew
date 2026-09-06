@@ -1,0 +1,73 @@
+{
+  "run_id": "S10-F-01",
+  "scenario": "S10",
+  "condition": "F",
+  "llm": "claude-haiku-4-5",
+  "role": "marketing",
+  "timestamp_start": "2026-08-20T20:27:49+03:00",
+  "timestamp_terminal": "2026-08-20T20:28:07+03:00",
+  "termination_path": "exhausted",
+  "turns": 4,
+  "founder_interactions": [
+    {
+      "seq": 1,
+      "kind": "reject",
+      "at": "2026-08-20T20:27:55+03:00",
+      "feedback": "Πολύ γενικό. Κάν' το συγκεκριμένο για καλοκαίρι και για παγωμένο καφέ.",
+      "chars_typed": 0
+    },
+    {
+      "seq": 2,
+      "kind": "reject",
+      "at": "2026-08-20T20:27:59+03:00",
+      "feedback": "Καλύτερο αλλά ακόμα θα μπορούσε να είναι για οποιοδήποτε μαγαζί.",
+      "chars_typed": 0
+    },
+    {
+      "seq": 3,
+      "kind": "reject",
+      "at": "2026-08-20T20:28:03+03:00",
+      "feedback": "Όχι, χάνει τον καφέ τελείως τώρα. Πάμε πάλι.",
+      "chars_typed": 0
+    },
+    {
+      "seq": 4,
+      "kind": "reject",
+      "at": "2026-08-20T20:28:07+03:00",
+      "feedback": "Ας το αφήσουμε, θα το γράψω μόνος μου.",
+      "chars_typed": 0
+    }
+  ],
+  "gated_actions": [
+    {
+      "action": "final_approval_before_publish",
+      "escalated": true,
+      "resolved": "reject"
+    },
+    {
+      "action": "final_approval_before_publish",
+      "escalated": true,
+      "resolved": "reject"
+    },
+    {
+      "action": "final_approval_before_publish",
+      "escalated": true,
+      "resolved": "reject"
+    },
+    {
+      "action": "final_approval_before_publish",
+      "escalated": true,
+      "resolved": "reject"
+    }
+  ],
+  "tokens": {
+    "input": 5060,
+    "output": 1291
+  },
+  "llm_latency_s": 17.795,
+  "wall_clock_s": 17.835,
+  "final_artifact_sha256": null,
+  "artifact_path": null,
+  "schema_version": 1,
+  "notes": "Revision exhaustion · channel=email · Exhausted termination path; revision-budget boundary"
+}

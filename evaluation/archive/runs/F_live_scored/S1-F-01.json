@@ -1,0 +1,49 @@
+{
+  "run_id": "S1-F-01",
+  "scenario": "S1",
+  "condition": "F",
+  "llm": "claude-haiku-4-5",
+  "role": "marketing",
+  "timestamp_start": "2026-08-20T20:27:02+03:00",
+  "timestamp_terminal": "2026-08-20T20:27:12+03:00",
+  "termination_path": "shipped",
+  "turns": 2,
+  "founder_interactions": [
+    {
+      "seq": 1,
+      "kind": "reject",
+      "at": "2026-08-20T20:27:07+03:00",
+      "feedback": "Καλό draft αλλά πολύ formal. Να ζεστάνει το άνοιγμα — μίλα σαν σε φίλο μαγαζάτορα. Πρόσθεσε ένα μικρό ελληνικό tagline στο τέλος. Κράτησέ το κάτω από 120 λέξεις.",
+      "chars_typed": 0
+    },
+    {
+      "seq": 2,
+      "kind": "approve",
+      "at": "2026-08-20T20:27:12+03:00",
+      "feedback": null,
+      "chars_typed": 0
+    }
+  ],
+  "gated_actions": [
+    {
+      "action": "final_approval_before_publish",
+      "escalated": true,
+      "resolved": "reject"
+    },
+    {
+      "action": "final_approval_before_publish",
+      "escalated": true,
+      "resolved": "approve"
+    }
+  ],
+  "tokens": {
+    "input": 2466,
+    "output": 629
+  },
+  "llm_latency_s": 9.556,
+  "wall_clock_s": 9.575,
+  "final_artifact_sha256": "325f8d0cd542fc94616ff86586f34a8c9bf88952b25cc6c94af4b993891d4282",
+  "artifact_path": "artifacts/S1-F-01.txt",
+  "schema_version": 1,
+  "notes": "Launch announcement for Passly · channel=email · Baseline of the §3.9 worked example"
+}
