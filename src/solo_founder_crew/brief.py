@@ -2,7 +2,7 @@
 
 The Venture Brief is structured input describing a venture's domain,
 product, customer, voice, and constraints. The JSON Schema lives at
-[`schemas/venture_brief.schema.json`](../../../schemas/venture_brief.schema.json)
+[`schemas/venture_brief.schema.json`](schemas/venture_brief.schema.json)
 and is the single source of truth shared between Ch.3 prose and the
 framework code.
 
@@ -24,13 +24,16 @@ from typing import Any
 
 import jsonschema
 
-# Resolve the schema path relative to the framework repo root. The
-# repo layout is fixed (schemas/ lives at the repo root, parallel to
-# src/), so this works whether the package is installed editable or
-# from a wheel that includes the schema as package data.
-_DEFAULT_SCHEMA_PATH = (
-    Path(__file__).resolve().parents[2] / "schemas" / "venture_brief.schema.json"
-)
+# Resolve the schema relative to this module, so it is found wherever the
+# package ends up. It used to resolve to `parents[2]/schemas`, which is the
+# repo root only for an editable install — from site-packages that path lands
+# outside the package entirely, and the schema is not there. Nothing caught it
+# because every install was editable until the framework was first installed
+# from a wheel.
+#
+# The schema is packaged alongside the code (see `package-data` in
+# pyproject.toml); keep the two in step when adding a schema.
+_DEFAULT_SCHEMA_PATH = Path(__file__).resolve().parent / "schemas" / "venture_brief.schema.json"
 
 
 class _DotAccess:
