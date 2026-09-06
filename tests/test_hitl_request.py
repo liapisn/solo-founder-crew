@@ -20,8 +20,8 @@ from solo_founder_crew import (
     ReviewOption,
 )
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-SCHEMA_PATH = REPO_ROOT / "schemas" / "hitl_request.schema.json"
+PACKAGE_ROOT = Path(__file__).resolve().parents[1] / "src" / "solo_founder_crew"
+SCHEMA_PATH = PACKAGE_ROOT / "schemas" / "hitl_request.schema.json"
 
 
 @pytest.fixture(scope="module")

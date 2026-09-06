@@ -10,7 +10,7 @@ This repository hosts the **framework** developed in Chapter 3. The case-study a
 
 The framework has five components (per the thesis scope):
 
-1. **Venture Brief Schema** — structured input describing a venture's domain, product, customer, constraints. Lives in [`schemas/`](schemas/) as JSON Schema (single source of truth for prose + code).
+1. **Venture Brief Schema** — structured input describing a venture's domain, product, customer, constraints. Lives in [`src/solo_founder_crew/schemas/`](src/solo_founder_crew/schemas/) as JSON Schema (single source of truth for prose + code).
 2. **Role Library** — catalogue of parameterised agent roles with decision rights and escalation rules.
 3. **Crew Generator** — selects and configures a crew subset from a Venture Brief.
 4. **Orchestration Runtime** — coordination layer (messaging, memory, tool access, arbitration).
@@ -32,7 +32,7 @@ Framework construction is phased:
 | 3 | Role Library (5 roles) + rule-driven Crew Generator with audit log (see [`examples/crew_generator_demo.py`](examples/crew_generator_demo.py)) | ✅ done |
 | 4 | Production HITL via LangGraph `interrupt()` + checkpointer; `InteractiveHITL` for stdin demos (see [`examples/passly_interactive.py`](examples/passly_interactive.py)) | ✅ done |
 | 5 | pytest suite (covering primitives, role library, all four author-flow termination paths) + thesis-side note | ✅ done |
-| 6 | HITL surface layer: typed `HITLRequest` envelope ([`schemas/hitl_request.schema.json`](schemas/hitl_request.schema.json), [`hitl_request.py`](src/solo_founder_crew/hitl_request.py)); the runtime gate now emits a `HITLRequest` and `HITLContract.review` takes it; `DiscordHITL` surface adapter ([`adapters/discord_hitl.py`](src/solo_founder_crew/adapters/discord_hitl.py)) lets the founder approve/reject/kill from a chat channel. | ✅ done |
+| 6 | HITL surface layer: typed `HITLRequest` envelope ([`schemas/hitl_request.schema.json`](src/solo_founder_crew/schemas/hitl_request.schema.json), [`hitl_request.py`](src/solo_founder_crew/hitl_request.py)); the runtime gate now emits a `HITLRequest` and `HITLContract.review` takes it; `DiscordHITL` surface adapter ([`adapters/discord_hitl.py`](src/solo_founder_crew/adapters/discord_hitl.py)) lets the founder approve/reject/kill from a chat channel. | ✅ done |
 
 **67 tests pass** (`.venv/bin/python -m pytest`). Phases 1–6 complete; the
 framework instantiates, runs end-to-end, and renders the founder gate to a
@@ -93,7 +93,7 @@ diagram as the [scenario specification](scenarios/passly_launch.md).
 ## Layout
 
 ```
-schemas/    JSON Schema definitions (Venture Brief, Role, HITL Contract)
+src/solo_founder_crew/schemas/  JSON Schema definitions (Venture Brief, Role, HITL Contract)
 scenarios/  Spike test bench (Passly launch) + fixtures
 spikes/     Part 7 candidate implementations: custom, crewai, langgraph + shared
 src/        Framework package (populated post-ADR)

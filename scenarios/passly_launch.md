@@ -38,7 +38,7 @@ A solo founder wants to publish a launch announcement for **Passly** (digital wa
 
 ## Inputs
 
-- **Venture Brief**: [`scenarios/fixtures/passly_brief.json`](fixtures/passly_brief.json) (conforms to [`schemas/venture_brief.schema.json`](../schemas/venture_brief.schema.json)).
+- **Venture Brief**: [`scenarios/fixtures/passly_brief.json`](fixtures/passly_brief.json) (conforms to [`schemas/venture_brief.schema.json`](../src/solo_founder_crew/schemas/venture_brief.schema.json)).
 - **Founder response (scripted for spike runs)**: a small JSON like `{"action": "reject", "feedback": "Tone too formal — make it warmer and add a Greek tagline."}` for turn 1, then `{"action": "approve"}` for turn 2.
 
 The spike does NOT use a live interactive prompt — founder responses are scripted from a fixture so runs are deterministic and the rubric criterion "HITL ergonomics" can be scored on *how easy it is to wire the gate in*, not on UI polish.

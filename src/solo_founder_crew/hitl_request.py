@@ -1,6 +1,6 @@
 """Component 5 — the HITL decision request envelope.
 
-Python mirror of ``schemas/hitl_request.schema.json``. The schema is the
+Python mirror of ``solo_founder_crew/schemas/hitl_request.schema.json``. The schema is the
 single source of truth; these dataclasses are the thin, typed in-process
 representation the runtime and the HITL surfaces pass around.
 

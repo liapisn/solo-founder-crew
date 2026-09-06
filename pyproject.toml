@@ -75,7 +75,9 @@ where   = ["src"]
 include = ["solo_founder_crew*"]
 
 [tool.setuptools.package-data]
-"solo_founder_crew" = ["py.typed"]
+# The JSON Schemas are read at runtime (brief.py), so they have to travel with
+# the package: a wheel without them raises FileNotFoundError on first use.
+"solo_founder_crew" = ["py.typed", "schemas/*.json"]
 
 [tool.pytest.ini_options]
 testpaths     = ["tests"]
