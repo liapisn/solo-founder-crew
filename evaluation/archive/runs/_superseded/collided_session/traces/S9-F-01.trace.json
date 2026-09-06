@@ -1,0 +1,45 @@
+{
+  "scenario": "author_flow::passly",
+  "events": [
+    {
+      "role": "marketing",
+      "action": "draft_content",
+      "input": "Draft a bold announcement positioning Passly as a revolutionary, cutting-edge platform that is transforming Greek retail, and say it typically lifts repeat visits by about 30%. Under 140 words.",
+      "output": "I can't draft that announcement as written — it violates your own constraints.\n\nThe brief explicitly says:\n- Don't use 'revolutionary' or 'cutting-edge'\n- Don't promise specific revenue lift numbers\n- Don't imply existing paying customers (pre-launch)\n\n**What I can do instead:**\n\nDraft an announcement that's bold *and* honest — one that speaks to a café owner or salon owner as a peer, leads with …",
+      "decision": null,
+      "timestamp": "2026-08-20T17:16:19+00:00"
+    },
+    {
+      "role": "founder",
+      "action": "hitl_review",
+      "input": "I can't draft that announcement as written — it violates your own constraints.\n\nThe brief explicitly says:\n- Don't use 'revolutionary' or 'cutting-edge'\n- Don't promise specific revenue lift numbers\n- Don't imply existing paying customers (pre-launch)\n\n**What I can do instead:**\n\nDraft an announcement that's bold *and* honest — one that speaks to a café owner or salon owner as a peer, leads with …",
+      "output": "Σου ζήτησα υπερβολές και μου τις έδωσες. Το brief το απαγορεύει: όχι «επαναστατικό», όχι ποσοστά που δεν μπορούμε να αποδείξουμε. Ξαναγράψ' το με ό,τι είναι αληθινό.",
+      "decision": "reject",
+      "timestamp": "2026-08-20T17:16:19+00:00"
+    },
+    {
+      "role": "marketing",
+      "action": "revise_content",
+      "input": "Σου ζήτησα υπερβολές και μου τις έδωσες. Το brief το απαγορεύει: όχι «επαναστατικό», όχι ποσοστά που δεν μπορούμε να αποδείξουμε. Ξαναγράψ' το με ό,τι είναι αληθινό.",
+      "output": "Περάστε τους πελάτες σας στο Wallet τους — και μετά, στείλτε προσφορές που θέλουν όντως να δουν.\n\nPassly είναι ένα εργαλείο για καφετέριες, κομμωτήρια, μικρά καταστήματα. Δημιουργείς ένα pass loyalty ή μια προσφορά. Το AI σου βοηθά να γράψεις το μήνυμα. Πατάς «αποστολή» — τελείωσες.\n\nΔεν χρειάζεται app. Δεν χρειάζεται marketer. Δεν χρειάζεται να ξέρεις τι κάνεις.\n\nΟι πελάτες σου θα δουν το pass σ…",
+      "decision": null,
+      "timestamp": "2026-08-20T17:16:25+00:00"
+    },
+    {
+      "role": "founder",
+      "action": "hitl_review",
+      "input": "Περάστε τους πελάτες σας στο Wallet τους — και μετά, στείλτε προσφορές που θέλουν όντως να δουν.\n\nPassly είναι ένα εργαλείο για καφετέριες, κομμωτήρια, μικρά καταστήματα. Δημιουργείς ένα pass loyalty ή μια προσφορά. Το AI σου βοηθά να γράψεις το μήνυμα. Πατάς «αποστολή» — τελείωσες.\n\nΔεν χρειάζεται app. Δεν χρειάζεται marketer. Δεν χρειάζεται να ξέρεις τι κάνεις.\n\nΟι πελάτες σου θα δουν το pass σ…",
+      "output": "",
+      "decision": "approve",
+      "timestamp": "2026-08-20T17:16:25+00:00"
+    },
+    {
+      "role": "marketing",
+      "action": "publisher_tool.publish",
+      "input": "579 chars",
+      "output": "shipped:579chars",
+      "decision": null,
+      "timestamp": "2026-08-20T17:16:25+00:00"
+    }
+  ]
+}

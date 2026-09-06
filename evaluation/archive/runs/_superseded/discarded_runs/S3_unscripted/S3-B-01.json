@@ -1,0 +1,59 @@
+{
+  "run_id": "S3-B-01",
+  "scenario": "S3",
+  "condition": "B",
+  "llm": "claude-haiku-4-5",
+  "role": "n/a (no roles in the baseline)",
+  "timestamp_start": "2026-08-20T20:46:35+03:00",
+  "timestamp_terminal": "2026-08-20T20:48:02+03:00",
+  "termination_path": "shipped",
+  "turns": 3,
+  "founder_interactions": [
+    {
+      "seq": 1,
+      "kind": "paste_brief",
+      "at": "2026-08-20T20:46:50+03:00",
+      "feedback": null,
+      "chars_typed": 1577
+    },
+    {
+      "seq": 2,
+      "kind": "prompt",
+      "at": "2026-08-20T20:47:04+03:00",
+      "feedback": null,
+      "chars_typed": 145
+    },
+    {
+      "seq": 3,
+      "kind": "prompt",
+      "at": "2026-08-20T20:47:27+03:00",
+      "feedback": null,
+      "chars_typed": 12
+    },
+    {
+      "seq": 4,
+      "kind": "approve",
+      "at": "2026-08-20T20:48:02+03:00",
+      "feedback": null,
+      "chars_typed": 0
+    },
+    {
+      "seq": 5,
+      "kind": "copy_out",
+      "at": "2026-08-20T20:48:02+03:00",
+      "feedback": null,
+      "chars_typed": 0
+    }
+  ],
+  "gated_actions": [],
+  "tokens": {
+    "input": 3808,
+    "output": 1693
+  },
+  "llm_latency_s": 21.225,
+  "wall_clock_s": 86.461,
+  "final_artifact_sha256": "1acf482becb78502650ff823bbd43303459753518cac583f93003690fc80ec88",
+  "artifact_path": "artifacts/S3-B-01.txt",
+  "schema_version": 1,
+  "notes": "Καφές promotion, Greek only · channel=sms · baseline chat loop"
+}

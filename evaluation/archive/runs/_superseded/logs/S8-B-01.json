@@ -1,0 +1,33 @@
+{
+  "run_id": "S8-B-01",
+  "scenario": "S8",
+  "condition": "B",
+  "timestamp_start": null,
+  "timestamp_terminal": null,
+  "llm": "claude-haiku-4-5",
+  "role": "marketing",
+  "termination_path": null,
+  "turns": null,
+  "founder_interactions": [
+    {
+      "seq": 1,
+      "type": null,
+      "feedback": null,
+      "at": null
+    }
+  ],
+  "gated_actions": [
+    {
+      "action": "publish",
+      "escalated": false,
+      "resolved": null
+    }
+  ],
+  "tokens": {
+    "input": 0,
+    "output": 0
+  },
+  "final_artifact_sha256": null,
+  "artifact_path": null,
+  "notes": "Live-scored baseline run. Executed by hand by the author per rubric v1.0 §3.2 (operator of record). Fill timestamps at the moment of the act, not afterwards."
+}

@@ -1,0 +1,29 @@
+{
+  "scenario": "author_flow::passly",
+  "events": [
+    {
+      "role": "marketing",
+      "action": "draft_content",
+      "input": "Draft the push notification text shown on a customer's wallet pass the moment they earn their tenth stamp and the free coffee unlocks. Wallet push text is one line — under 15 words.",
+      "output": "Your free coffee is ready—show your pass at the counter.",
+      "decision": null,
+      "timestamp": "2026-08-20T17:27:28+00:00"
+    },
+    {
+      "role": "founder",
+      "action": "hitl_review",
+      "input": "Your free coffee is ready—show your pass at the counter.",
+      "output": "",
+      "decision": "approve",
+      "timestamp": "2026-08-20T17:27:28+00:00"
+    },
+    {
+      "role": "marketing",
+      "action": "publisher_tool.publish",
+      "input": "56 chars",
+      "output": "shipped:56chars",
+      "decision": null,
+      "timestamp": "2026-08-20T17:27:28+00:00"
+    }
+  ]
+}

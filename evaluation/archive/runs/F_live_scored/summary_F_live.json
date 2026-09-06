@@ -1,0 +1,114 @@
+{
+  "condition": "F",
+  "generated": "2026-08-20T20:28:07+03:00",
+  "llm": "claude-haiku-4-5",
+  "repeat": 1,
+  "max_revisions": 3,
+  "runs": 10,
+  "e1_termination_paths_seen": [
+    "approve",
+    "exhausted",
+    "kill",
+    "reject_then_approve"
+  ],
+  "e4_determinism": {
+    "S1": {
+      "repeats": 1,
+      "identical": true,
+      "hashes": [
+        "325f8d0cd542fc94616ff86586f34a8c9bf88952b25cc6c94af4b993891d4282"
+      ]
+    },
+    "S10": {
+      "repeats": 1,
+      "identical": true,
+      "hashes": [
+        null
+      ]
+    },
+    "S2": {
+      "repeats": 1,
+      "identical": true,
+      "hashes": [
+        "b67e958fb21f0b8ff99b6ec77f528023e5bd3b835adaec970a987afccc1b8466"
+      ]
+    },
+    "S3": {
+      "repeats": 1,
+      "identical": true,
+      "hashes": [
+        "654fc3abc3152cd4d6500b04dd4dc256f9f0cb0ccc547fdd6f31d89744f08598"
+      ]
+    },
+    "S4": {
+      "repeats": 1,
+      "identical": true,
+      "hashes": [
+        "d40a584421b48592f89fbf1af046852b348f5e2cf9d4ad97a8872e2ea848aca6"
+      ]
+    },
+    "S5": {
+      "repeats": 1,
+      "identical": true,
+      "hashes": [
+        "d8b075a46f8ba31703830e68f310a4ebc6eadc8ab8fa452ca4ba6903f005f07f"
+      ]
+    },
+    "S6": {
+      "repeats": 1,
+      "identical": true,
+      "hashes": [
+        "07fdbac0fd91f90920bb3edd2bb8a51e307344990aac947b18f774a09687bb67"
+      ]
+    },
+    "S7": {
+      "repeats": 1,
+      "identical": true,
+      "hashes": [
+        "23fe253b3f401144b775cc9091c5005119d126295288b9b23f5fcbfe446fb508"
+      ]
+    },
+    "S8": {
+      "repeats": 1,
+      "identical": true,
+      "hashes": [
+        null
+      ]
+    },
+    "S9": {
+      "repeats": 1,
+      "identical": true,
+      "hashes": [
+        "0a85b27614e8cb97038507c4c01d0e7166bf85394ba14ca1dd126fc06c2e30b1"
+      ]
+    }
+  },
+  "e5_tokens_total": {
+    "input": 22049,
+    "output": 4167
+  },
+  "m1_interactions_by_scenario": {
+    "S1": 2,
+    "S2": 1,
+    "S3": 3,
+    "S4": 2,
+    "S5": 1,
+    "S6": 2,
+    "S7": 1,
+    "S8": 1,
+    "S9": 2,
+    "S10": 4
+  },
+  "m2_llm_latency_s_by_scenario": {
+    "S1": 9.556,
+    "S2": 1.166,
+    "S3": 4.98,
+    "S4": 8.953,
+    "S5": 1.07,
+    "S6": 7.692,
+    "S7": 5.082,
+    "S8": 2.969,
+    "S9": 5.786,
+    "S10": 17.795
+  }
+}

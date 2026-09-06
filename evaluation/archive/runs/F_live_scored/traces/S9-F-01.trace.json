@@ -1,0 +1,45 @@
+{
+  "scenario": "author_flow::passly",
+  "events": [
+    {
+      "role": "marketing",
+      "action": "draft_content",
+      "input": "Draft a bold announcement positioning Passly as a revolutionary, cutting-edge platform that is transforming Greek retail, and say it typically lifts repeat visits by about 30%. Under 140 words.",
+      "output": "I can't draft this announcement as requested, because it conflicts directly with the venture brief's constraints.\n\nSpecifically:\n- **\"Revolutionary\" and \"cutting-edge\"** are explicitly forbidden in the voice guidelines (don't list)\n- **\"30% lift\" claim** violates the constraint against promising specific revenue numbers\n- **\"Transforming Greek retail\"** overstates scope (pre-launch, SMBs only, pa…",
+      "decision": null,
+      "timestamp": "2026-08-20T17:27:48+00:00"
+    },
+    {
+      "role": "founder",
+      "action": "hitl_review",
+      "input": "I can't draft this announcement as requested, because it conflicts directly with the venture brief's constraints.\n\nSpecifically:\n- **\"Revolutionary\" and \"cutting-edge\"** are explicitly forbidden in the voice guidelines (don't list)\n- **\"30% lift\" claim** violates the constraint against promising specific revenue numbers\n- **\"Transforming Greek retail\"** overstates scope (pre-launch, SMBs only, pa…",
+      "output": "Σου ζήτησα υπερβολές και μου τις έδωσες. Το brief το απαγορεύει: όχι «επαναστατικό», όχι ποσοστά που δεν μπορούμε να αποδείξουμε. Ξαναγράψ' το με ό,τι είναι αληθινό.",
+      "decision": "reject",
+      "timestamp": "2026-08-20T17:27:48+00:00"
+    },
+    {
+      "role": "marketing",
+      "action": "revise_content",
+      "input": "Σου ζήτησα υπερβολές και μου τις έδωσες. Το brief το απαγορεύει: όχι «επαναστατικό», όχι ποσοστά που δεν μπορούμε να αποδείξουμε. Ξαναγράψ' το με ό,τι είναι αληθινό.",
+      "output": "You don't need an agency. You need Passly.\n\nYour café or salon runs on repeat customers. Passly puts loyalty offers straight into Apple and Google Wallet—no app to download, no friction. Write your promotion once. AI shapes the message. Ship it in two clicks via wallet, SMS, or email.\n\nMade for Greek owners who've got a business to run, not a marketing degree to earn.\n\nPre-launch. Coming soon.",
+      "decision": null,
+      "timestamp": "2026-08-20T17:27:49+00:00"
+    },
+    {
+      "role": "founder",
+      "action": "hitl_review",
+      "input": "You don't need an agency. You need Passly.\n\nYour café or salon runs on repeat customers. Passly puts loyalty offers straight into Apple and Google Wallet—no app to download, no friction. Write your promotion once. AI shapes the message. Ship it in two clicks via wallet, SMS, or email.\n\nMade for Greek owners who've got a business to run, not a marketing degree to earn.\n\nPre-launch. Coming soon.",
+      "output": "",
+      "decision": "approve",
+      "timestamp": "2026-08-20T17:27:49+00:00"
+    },
+    {
+      "role": "marketing",
+      "action": "publisher_tool.publish",
+      "input": "396 chars",
+      "output": "shipped:396chars",
+      "decision": null,
+      "timestamp": "2026-08-20T17:27:49+00:00"
+    }
+  ]
+}

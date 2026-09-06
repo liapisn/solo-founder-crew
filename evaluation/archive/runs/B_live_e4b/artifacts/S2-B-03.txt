@@ -1,0 +1,26 @@
+# Chunky Cookie Bar — Loyalty Pass Copy
+
+## Primary Text (Stamp Card)
+**Greek:**  
+Κάθε καφές μετράει. Ο 10ος είναι δικός σου.
+
+**English:**  
+Every coffee counts. Your 10th is free.
+
+---
+
+## Secondary Line (if space allows — optional)
+**Greek:**  
+Συγκέντρωσε 10 σφραγίδες.
+
+**English:**  
+Collect 10 stamps.
+
+---
+
+## Notes
+- **Word count:** 10 words (Greek), 6 words (English)
+- **Tone:** Direct, warm. No fluff.
+- **What it does:** Names the reward (free coffee), explains the mechanic (stamps), removes ambiguity.
+- **Visual hierarchy:** Primary text should be large; stamps/progress tracker visual does the heavy lifting.
+- **Compliance:** No personal data referenced; no urgency tricks.

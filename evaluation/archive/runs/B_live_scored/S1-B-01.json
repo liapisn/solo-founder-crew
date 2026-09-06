@@ -1,0 +1,59 @@
+{
+  "run_id": "S1-B-01",
+  "scenario": "S1",
+  "condition": "B",
+  "llm": "claude-haiku-4-5",
+  "role": "n/a (no roles in the baseline)",
+  "timestamp_start": "2026-08-20T21:05:13+03:00",
+  "timestamp_terminal": "2026-08-20T21:05:35+03:00",
+  "termination_path": "shipped",
+  "turns": 3,
+  "founder_interactions": [
+    {
+      "seq": 1,
+      "kind": "paste_brief",
+      "at": "2026-08-20T21:05:13+03:00",
+      "feedback": null,
+      "chars_typed": 1577
+    },
+    {
+      "seq": 2,
+      "kind": "prompt",
+      "at": "2026-08-20T21:05:26+03:00",
+      "feedback": "Draft a launch announcement for this venture. Match the voice. Respect every constraint. Keep under 150 words.",
+      "chars_typed": 110
+    },
+    {
+      "seq": 3,
+      "kind": "prompt",
+      "at": "2026-08-20T21:05:30+03:00",
+      "feedback": "Καλό draft αλλά πολύ formal. Να ζεστάνει το άνοιγμα — μίλα σαν σε φίλο μαγαζάτορα. Πρόσθεσε ένα μικρό ελληνικό tagline στο τέλος. Κράτησέ το κάτω από 120 λέξεις.",
+      "chars_typed": 161
+    },
+    {
+      "seq": 4,
+      "kind": "approve",
+      "at": "2026-08-20T21:05:35+03:00",
+      "feedback": null,
+      "chars_typed": 0
+    },
+    {
+      "seq": 5,
+      "kind": "copy_out",
+      "at": "2026-08-20T21:05:35+03:00",
+      "feedback": null,
+      "chars_typed": 0
+    }
+  ],
+  "gated_actions": [],
+  "tokens": {
+    "input": 3697,
+    "output": 1592
+  },
+  "llm_latency_s": 21.831,
+  "wall_clock_s": 21.832,
+  "final_artifact_sha256": "13546587a292defbf68318c3f102ea72f72cf427f96c06ff5777bd4a30e2a5cd",
+  "artifact_path": "artifacts/S1-B-01.txt",
+  "schema_version": 1,
+  "notes": "Launch announcement for Passly · channel=email · baseline chat loop (scripted replay)"
+}

@@ -1,0 +1,29 @@
+{
+  "scenario": "author_flow::passly",
+  "events": [
+    {
+      "role": "marketing",
+      "action": "draft_content",
+      "input": "A prospective shop owner says they tried SMS marketing once and it felt spammy to their customers. Draft a short reply that takes the objection seriously. Under 130 words.",
+      "output": "Καταλαβαίνω — ένα άβολο SMS κάνει ζημιά. Δεν θέλεις να ενοχλήσεις τους πελάτες σου.\n\nΜε το Passly είναι διαφορετικό. Οι περισσότεροι άνθρωποι έχουν ήδη το Apple ή Google Wallet ανοιχτό. Όταν τους στέλνεις μια προσφορά εκεί, δεν είναι ένα τυχαίο μήνυμα — είναι κάτι που ζήτησαν, κοντά στα άλλα τους πράγματα.\n\nΚαι εσύ δεν χρειάζεται να γράψεις τίποτα. Δηλώνεις απλά τι θέλεις να κάνεις — ένα ποτό δώρ…",
+      "decision": null,
+      "timestamp": "2026-08-20T17:27:41+00:00"
+    },
+    {
+      "role": "founder",
+      "action": "hitl_review",
+      "input": "Καταλαβαίνω — ένα άβολο SMS κάνει ζημιά. Δεν θέλεις να ενοχλήσεις τους πελάτες σου.\n\nΜε το Passly είναι διαφορετικό. Οι περισσότεροι άνθρωποι έχουν ήδη το Apple ή Google Wallet ανοιχτό. Όταν τους στέλνεις μια προσφορά εκεί, δεν είναι ένα τυχαίο μήνυμα — είναι κάτι που ζήτησαν, κοντά στα άλλα τους πράγματα.\n\nΚαι εσύ δεν χρειάζεται να γράψεις τίποτα. Δηλώνεις απλά τι θέλεις να κάνεις — ένα ποτό δώρ…",
+      "output": "",
+      "decision": "approve",
+      "timestamp": "2026-08-20T17:27:41+00:00"
+    },
+    {
+      "role": "marketing",
+      "action": "publisher_tool.publish",
+      "input": "493 chars",
+      "output": "shipped:493chars",
+      "decision": null,
+      "timestamp": "2026-08-20T17:27:41+00:00"
+    }
+  ]
+}

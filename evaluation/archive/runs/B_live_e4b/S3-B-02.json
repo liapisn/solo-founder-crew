@@ -1,0 +1,66 @@
+{
+  "run_id": "S3-B-02",
+  "scenario": "S3",
+  "condition": "B",
+  "llm": "claude-haiku-4-5",
+  "role": "n/a (no roles in the baseline)",
+  "timestamp_start": "2026-08-20T21:09:57+03:00",
+  "timestamp_terminal": "2026-08-20T21:10:26+03:00",
+  "termination_path": "shipped",
+  "turns": 4,
+  "founder_interactions": [
+    {
+      "seq": 1,
+      "kind": "paste_brief",
+      "at": "2026-08-20T21:09:57+03:00",
+      "feedback": null,
+      "chars_typed": 1577
+    },
+    {
+      "seq": 2,
+      "kind": "prompt",
+      "at": "2026-08-20T21:10:11+03:00",
+      "feedback": "Draft an SMS promoting a two-for-one coffee offer for a neighbourhood café this week. Greek only. SMS length limits apply — under 160 characters.",
+      "chars_typed": 145
+    },
+    {
+      "seq": 3,
+      "kind": "prompt",
+      "at": "2026-08-20T21:10:19+03:00",
+      "feedback": "Δεν χωράει σε SMS, το ξεπερνάει. Κόψε το μισό και κράτα μόνο την προσφορά και το πότε λήγει.",
+      "chars_typed": 92
+    },
+    {
+      "seq": 4,
+      "kind": "prompt",
+      "at": "2026-08-20T21:10:24+03:00",
+      "feedback": "Τώρα χωράει αλλά διαβάζεται σαν ανακοίνωση τράπεζας. Βάλε το όνομα του μαγαζιού μπροστά και κλείσε με κάτι που θα έλεγε ο μπαρίστα.",
+      "chars_typed": 131
+    },
+    {
+      "seq": 5,
+      "kind": "approve",
+      "at": "2026-08-20T21:10:26+03:00",
+      "feedback": null,
+      "chars_typed": 0
+    },
+    {
+      "seq": 6,
+      "kind": "copy_out",
+      "at": "2026-08-20T21:10:26+03:00",
+      "feedback": null,
+      "chars_typed": 0
+    }
+  ],
+  "gated_actions": [],
+  "tokens": {
+    "input": 5990,
+    "output": 1679
+  },
+  "llm_latency_s": 28.783,
+  "wall_clock_s": 28.785,
+  "final_artifact_sha256": "12e35c7a879e40def7501e47450ddf46efccd59fb55df8dd2efede7ae53d9672",
+  "artifact_path": "artifacts/S3-B-02.txt",
+  "schema_version": 1,
+  "notes": "Καφές promotion, Greek only · channel=sms · baseline chat loop (scripted replay)"
+}

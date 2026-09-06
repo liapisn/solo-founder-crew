@@ -1,0 +1,38 @@
+# Passly + POS Integration Announcement
+
+## ⚠️ Scope Check
+
+This request describes **physical/hybrid retail integrations beyond passes** — which is explicitly out of scope per the brief:
+
+> *Out of scope: Physical / hybrid retail integrations beyond passes*
+
+**Passly's core value** is wallet passes + AI-powered marketing for Greek SMBs. POS/stock/payment syncing represents a different product category (inventory management, payments processing) and shifts positioning away from the core job: *"Get repeat customers back through the door."*
+
+---
+
+## Recommendation
+
+**Don't announce this integration** in the pre-launch phase because:
+
+1. **It dilutes focus.** The shop owner's real problem isn't syncing stock—it's *getting people to return*. Adding POS sync muddies the message.
+
+2. **It overcomplicates the pitch.** Your two-click promise breaks when you're also asking owners to manage inventory sync, reconciliation, etc.
+
+3. **It's a separate business problem.** POS platforms (Square, Viva, etc.) already solve this. Passly isn't positioned as a POS replacement.
+
+4. **Pre-launch risk.** You haven't launched the core product yet. Building demand for an add-on feature before the main product is live creates false expectations.
+
+---
+
+## Alternative: What to Do Instead
+
+If a shop owner **asks** about POS integration:
+
+**Response (warm, honest):**
+> *"That's a smart question. Right now, we're focused on one thing: getting your customers back through the door with wallet passes and easy campaigns. We're not building POS sync yet—tools like Viva and Square do that really well already. Our job is the marketing side. If integrating with your POS system later makes life easier, we'll explore it—but only once we've nailed loyalty and offers first."*
+
+This keeps you credible, honest, and focused.
+
+---
+
+**Should you later expand into this territory, I can help draft that announcement. But it would be a different product positioning entirely.**

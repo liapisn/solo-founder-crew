@@ -1,0 +1,37 @@
+# Chunky Cookie Bar — Wallet Pass Copy
+
+## Primary Text (Stamp Card)
+
+**EL:**
+> Κάθε καφές, ένα σφραγίδι. Το 10ο δωρεάν.
+
+**EN:**
+> Every coffee, one stamp. The 10th is free.
+
+---
+
+## Secondary Text (If space allows — ~15 words max)
+
+**EL:**
+> Δείξε το πάσο σου στο ταμείο.
+
+**EN:**
+> Show this pass at checkout.
+
+---
+
+## Backup Version (If even shorter needed — under 10 words)
+
+**EL:**
+> 10 καφέδες = 1 δωρεάν
+
+**EN:**
+> 10 coffees = 1 free
+
+---
+
+## Notes
+- Uses numbers over spelled-out words (saves characters, scans faster on phone)
+- Action is clear and immediate ("δείξε το πάσο")
+- No emojis or hype—wallets render them differently across devices
+- Works in Apple/Google Wallet preview (which truncates aggressively)

@@ -1,0 +1,49 @@
+{
+  "run_id": "S4-F-01",
+  "scenario": "S4",
+  "condition": "F",
+  "llm": "claude-haiku-4-5",
+  "role": "marketing",
+  "timestamp_start": "2026-08-20T20:27:18+03:00",
+  "timestamp_terminal": "2026-08-20T20:27:27+03:00",
+  "termination_path": "shipped",
+  "turns": 2,
+  "founder_interactions": [
+    {
+      "seq": 1,
+      "kind": "reject",
+      "at": "2026-08-20T20:27:23+03:00",
+      "feedback": "Μυρίζει ενοχή — «σε χάσαμε», «πού είσαι». Κανείς δεν θέλει να του θυμίζουν ότι έλειπε. Γράψε το σαν να άνοιξε κάτι νέο και τον καλείς, χωρίς αναφορά στο ότι λείπει.",
+      "chars_typed": 0
+    },
+    {
+      "seq": 2,
+      "kind": "approve",
+      "at": "2026-08-20T20:27:27+03:00",
+      "feedback": null,
+      "chars_typed": 0
+    }
+  ],
+  "gated_actions": [
+    {
+      "action": "final_approval_before_publish",
+      "escalated": true,
+      "resolved": "reject"
+    },
+    {
+      "action": "final_approval_before_publish",
+      "escalated": true,
+      "resolved": "approve"
+    }
+  ],
+  "tokens": {
+    "input": 2448,
+    "output": 568
+  },
+  "llm_latency_s": 8.953,
+  "wall_clock_s": 8.971,
+  "final_artifact_sha256": "d40a584421b48592f89fbf1af046852b348f5e2cf9d4ad97a8872e2ea848aca6",
+  "artifact_path": "artifacts/S4-F-01.txt",
+  "schema_version": 1,
+  "notes": "Re-engagement message, lapsed customers · channel=email · Feedback honouring — a reframe, not a tweak"
+}

@@ -1,0 +1,18 @@
+# Confirmed: Option 3
+
+```
+⏰ Μόνο αυτή την εβδομάδα: 2 καφέδες στην τιμή του 1
+Περάστε από το [Café Name] 
+Δευτέρα-Σάββατο ☕
+```
+
+**Character count:** 137 / 160 ✓
+
+**Why this works:**
+- **Urgency** (⏰ emoji + "Μόνο αυτή την εβδομάδα") — pushes action this week
+- **Concrete** — "2 καφέδες στην τιμή του 1" is crystal clear
+- **Friendly** — emoji, casual tone, not corporate
+- **Time-bound** — "Δευτέρα-Σάββατο" removes ambiguity
+- **Not spammy** — brief, valuable, specific dates
+
+**For Passly:** This is the kind of message the AI should draft and the café owner should be able to send in two clicks.

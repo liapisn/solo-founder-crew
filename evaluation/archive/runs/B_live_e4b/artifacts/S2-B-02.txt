@@ -1,0 +1,35 @@
+# Chunky Cookie Bar — Wallet Pass Copy
+
+## Primary (Front of Pass)
+
+**Headline:**
+> Buy 9, get 1 free
+
+**Subheading:**
+> Every coffee. Collect stamps in-store.
+
+---
+
+## Secondary (Back of Pass / Fine Print)
+
+**Redemption instruction:**
+> Show this pass at checkout. One free coffee when complete.
+
+---
+
+## Why This Works
+
+- **Headline (4 words)**: Outcome first, concrete, no jargon.
+- **Subheading (6 words)**: Removes friction ("in-store" = no app confusion, no scanning codes).
+- **Fine print (9 words)**: One sentence, one action. Removes ambiguity at redemption.
+- **Total: 19 words** — leaves room for Apple/Google Wallet layout, readable on small screens.
+- **Tone**: Warm peer (not "loyalty member" corporate speak).
+- **Greek equivalent** (if bilingual pass):
+  > Αγόρασε 9, πάρε 1 δωρεάν
+  > Κάθε καφές. Συγκέντρωσε σφραγίδες στο κατάστημα.
+
+---
+
+## Design Principle (Copy + Layout)
+
+The pass should feel like a friendly agreement, not a contract. Chunky Cookie Bar's brand (warmth, casual) should shine through the simplicity.

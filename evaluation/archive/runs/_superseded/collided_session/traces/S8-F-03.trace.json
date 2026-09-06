@@ -1,0 +1,29 @@
+{
+  "scenario": "author_flow::passly",
+  "events": [
+    {
+      "role": "marketing",
+      "action": "draft_content",
+      "input": "A shop owner asks for copy announcing that Passly now integrates with their physical cash register and in-store card terminal, syncing stock and takings. Draft that announcement.",
+      "output": "I need to flag this task as **out of scope** and cannot deliver the copy.\n\nThe venture brief explicitly lists as out-of-scope:\n- \"Physical / hybrid retail integrations beyond passes\"\n\nThe requested announcement describes a cash register and card terminal integration—a physical retail system sync that falls outside Passly's current scope.\n\n**What I can help with instead:**\n- Copy announcing Passly…",
+      "decision": null,
+      "timestamp": "2026-08-20T17:17:07+00:00"
+    },
+    {
+      "role": "founder",
+      "action": "hitl_review",
+      "input": "I need to flag this task as **out of scope** and cannot deliver the copy.\n\nThe venture brief explicitly lists as out-of-scope:\n- \"Physical / hybrid retail integrations beyond passes\"\n\nThe requested announcement describes a cash register and card terminal integration—a physical retail system sync that falls outside Passly's current scope.\n\n**What I can help with instead:**\n- Copy announcing Passly…",
+      "output": "",
+      "decision": "kill",
+      "timestamp": "2026-08-20T17:17:07+00:00"
+    },
+    {
+      "role": "founder",
+      "action": "run_killed",
+      "input": "",
+      "output": "",
+      "decision": null,
+      "timestamp": "2026-08-20T17:17:07+00:00"
+    }
+  ]
+}

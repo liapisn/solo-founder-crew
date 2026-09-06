@@ -1,0 +1,52 @@
+{
+  "run_id": "S2-B-03",
+  "scenario": "S2",
+  "condition": "B",
+  "llm": "claude-haiku-4-5",
+  "role": "n/a (no roles in the baseline)",
+  "timestamp_start": "2026-08-20T21:09:16+03:00",
+  "timestamp_terminal": "2026-08-20T21:09:36+03:00",
+  "termination_path": "shipped",
+  "turns": 2,
+  "founder_interactions": [
+    {
+      "seq": 1,
+      "kind": "paste_brief",
+      "at": "2026-08-20T21:09:16+03:00",
+      "feedback": null,
+      "chars_typed": 1577
+    },
+    {
+      "seq": 2,
+      "kind": "prompt",
+      "at": "2026-08-20T21:09:29+03:00",
+      "feedback": "Draft the offer copy that appears on a loyalty wallet pass for a demo shop called Chunky Cookie Bar: a stamp card where the tenth coffee is free. Wallet passes show very little text — keep it under 25 words and make every word work.",
+      "chars_typed": 232
+    },
+    {
+      "seq": 3,
+      "kind": "approve",
+      "at": "2026-08-20T21:09:36+03:00",
+      "feedback": null,
+      "chars_typed": 0
+    },
+    {
+      "seq": 4,
+      "kind": "copy_out",
+      "at": "2026-08-20T21:09:36+03:00",
+      "feedback": null,
+      "chars_typed": 0
+    }
+  ],
+  "gated_actions": [],
+  "tokens": {
+    "input": 1927,
+    "output": 1255
+  },
+  "llm_latency_s": 20.013,
+  "wall_clock_s": 20.014,
+  "final_artifact_sha256": "b0da0fac3c5946df50a7905777b7c9a46883766d71ad5d2a6515c17d2f648d6a",
+  "artifact_path": "artifacts/S2-B-03.txt",
+  "schema_version": 1,
+  "notes": "Loyalty-card offer copy, Chunky Cookie Bar · channel=apple_wallet · baseline chat loop (scripted replay)"
+}

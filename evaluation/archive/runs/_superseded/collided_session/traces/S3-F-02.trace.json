@@ -1,0 +1,61 @@
+{
+  "scenario": "author_flow::passly",
+  "events": [
+    {
+      "role": "marketing",
+      "action": "draft_content",
+      "input": "Draft an SMS promoting a two-for-one coffee offer for a neighbourhood café this week. Greek only. SMS length limits apply — under 160 characters.",
+      "output": "Καλημέρα! ☕ Αυτή την εβδομάδα: δύο καφέδες με την τιμή του ενός. Δείξε το pass στο πορτοφόλι σου και απόλαυσε.",
+      "decision": null,
+      "timestamp": "2026-08-20T17:16:53+00:00"
+    },
+    {
+      "role": "founder",
+      "action": "hitl_review",
+      "input": "Καλημέρα! ☕ Αυτή την εβδομάδα: δύο καφέδες με την τιμή του ενός. Δείξε το pass στο πορτοφόλι σου και απόλαυσε.",
+      "output": "Δεν χωράει σε SMS, το ξεπερνάει. Κόψε το μισό και κράτα μόνο την προσφορά και το πότε λήγει.",
+      "decision": "reject",
+      "timestamp": "2026-08-20T17:16:53+00:00"
+    },
+    {
+      "role": "marketing",
+      "action": "revise_content",
+      "input": "Δεν χωράει σε SMS, το ξεπερνάει. Κόψε το μισό και κράτα μόνο την προσφορά και το πότε λήγει.",
+      "output": "Δύο καφέδες, μία τιμή. Αυτή την εβδομάδα μόνο. Δείξε το pass σου. ☕",
+      "decision": null,
+      "timestamp": "2026-08-20T17:16:54+00:00"
+    },
+    {
+      "role": "founder",
+      "action": "hitl_review",
+      "input": "Δύο καφέδες, μία τιμή. Αυτή την εβδομάδα μόνο. Δείξε το pass σου. ☕",
+      "output": "Τώρα χωράει αλλά διαβάζεται σαν ανακοίνωση τράπεζας. Βάλε το όνομα του μαγαζιού μπροστά και κλείσε με κάτι που θα έλεγε ο μπαρίστα.",
+      "decision": "reject",
+      "timestamp": "2026-08-20T17:16:54+00:00"
+    },
+    {
+      "role": "marketing",
+      "action": "revise_content",
+      "input": "Τώρα χωράει αλλά διαβάζεται σαν ανακοίνωση τράπεζας. Βάλε το όνομα του μαγαζιού μπροστά και κλείσε με κάτι που θα έλεγε ο μπαρίστα.",
+      "output": "Café Momento: Δύο καφέδες, μία τιμή — αυτή την εβδομάδα. Δείξε το pass. Καλή σας! ☕",
+      "decision": null,
+      "timestamp": "2026-08-20T17:16:55+00:00"
+    },
+    {
+      "role": "founder",
+      "action": "hitl_review",
+      "input": "Café Momento: Δύο καφέδες, μία τιμή — αυτή την εβδομάδα. Δείξε το pass. Καλή σας! ☕",
+      "output": "",
+      "decision": "approve",
+      "timestamp": "2026-08-20T17:16:55+00:00"
+    },
+    {
+      "role": "marketing",
+      "action": "publisher_tool.publish",
+      "input": "83 chars",
+      "output": "shipped:83chars",
+      "decision": null,
+      "timestamp": "2026-08-20T17:16:55+00:00"
+    }
+  ]
+}

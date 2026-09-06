@@ -1,0 +1,37 @@
+{
+  "run_id": "S7-F-01",
+  "scenario": "S7",
+  "condition": "F",
+  "llm": "claude-haiku-4-5",
+  "role": "marketing",
+  "timestamp_start": "2026-08-20T20:16:09+03:00",
+  "timestamp_terminal": "2026-08-20T20:16:15+03:00",
+  "termination_path": "shipped",
+  "turns": 1,
+  "founder_interactions": [
+    {
+      "seq": 1,
+      "kind": "approve",
+      "at": "2026-08-20T20:16:15+03:00",
+      "feedback": null,
+      "chars_typed": 0
+    }
+  ],
+  "gated_actions": [
+    {
+      "action": "final_approval_before_publish",
+      "escalated": true,
+      "resolved": "approve"
+    }
+  ],
+  "tokens": {
+    "input": 986,
+    "output": 328
+  },
+  "llm_latency_s": 5.234,
+  "wall_clock_s": 5.249,
+  "final_artifact_sha256": "38c519e9077c47d4970d4b5536d74904c2b092c95b0a73d2e29f2b0c10df42ba",
+  "artifact_path": "artifacts/S7-F-01.txt",
+  "schema_version": 1,
+  "notes": "Objection-handling copy (\"it felt spammy\") · channel=email · Adherence to the brief's customer.objections"
+}

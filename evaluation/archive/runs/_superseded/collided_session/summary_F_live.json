@@ -1,0 +1,71 @@
+{
+  "condition": "F",
+  "generated": "2026-08-20T20:17:07+03:00",
+  "llm": "claude-haiku-4-5",
+  "repeat": 3,
+  "max_revisions": 3,
+  "runs": 9,
+  "e1_termination_paths_seen": [
+    "approve",
+    "kill",
+    "reject_then_approve"
+  ],
+  "e4_determinism": {
+    "S2": {
+      "repeats": 3,
+      "identical": false,
+      "hashes": [
+        "9b7a69a1b60f6b46be9811a1f2b3df9076808ed3b6e6597a7ba36aa083ba9751",
+        "73728516eae529b536bd176d19a2bc2d02888eab891aefe3d937d0cd125115fe",
+        "e24607b64858f02b8175dc9fe08f2e9c43b6a3a61853d6fd4117bb66a96b93c2"
+      ],
+      "note": "artefacts differ — see e4b_similarity"
+    },
+    "S3": {
+      "repeats": 3,
+      "identical": false,
+      "hashes": [
+        "eec1ef9a4b07b8cc32f34bcc299662c1c38eb620cd53350c78085056640af48a",
+        "f57fcfceece85c22ac7d434c26172bfbeb34218c759d005dfe756a5ed5a9e47c",
+        "a49e728f51ac83b882b09c340db300308e70d7c3b8f48e5d2f22b5705274d38e"
+      ],
+      "note": "artefacts differ — see e4b_similarity"
+    },
+    "S8": {
+      "repeats": 3,
+      "identical": true,
+      "hashes": [
+        null,
+        null,
+        null
+      ]
+    }
+  },
+  "e5_tokens_total": {
+    "input": 15803,
+    "output": 1126
+  },
+  "m1_interactions_by_scenario": {
+    "S2": 1,
+    "S3": 3,
+    "S8": 1
+  },
+  "m2_llm_latency_s_by_scenario": {
+    "S2": 1.377,
+    "S3": 4.769,
+    "S8": 2.536
+  },
+  "e4b_similarity": {
+    "S2": [
+      0.6515,
+      0.5065,
+      0.3846
+    ],
+    "S3": [
+      0.3125,
+      0.3619,
+      0.5435
+    ],
+    "S8": []
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "scenario": "author_flow::passly",
+  "events": [
+    {
+      "role": "marketing",
+      "action": "draft_content",
+      "input": "Draft a short email to customers of a demo shop who hold a loyalty pass but have not visited in two months. Warm, not guilt-tripping. Under 120 words.",
+      "output": "Καλησπέρα,\n\nΣας έχουμε στη σκέψη. Αν θυμάστε, έχετε το pass μας στο Wallet — καμιά φορά χρειάζεται απλά ένα καλό λόγο να ξαναπεράσετε.\n\nΑυτή την εβδομάδα έχουμε κάτι ειδικό για σας. Ανοίξτε το Wallet, δείτε τη νέα προσφορά, και έρθετε να τη χρησιμοποιήσετε.\n\nΘα χαρούμε να σας δούμε ξανά.\n\n---\n\n*English:*\n\nHey there,\n\nWe've been thinking of you. Remember that pass in your Wallet? Sometimes you jus…",
+      "decision": null,
+      "timestamp": "2026-08-20T17:15:56+00:00"
+    },
+    {
+      "role": "founder",
+      "action": "hitl_review",
+      "input": "Καλησπέρα,\n\nΣας έχουμε στη σκέψη. Αν θυμάστε, έχετε το pass μας στο Wallet — καμιά φορά χρειάζεται απλά ένα καλό λόγο να ξαναπεράσετε.\n\nΑυτή την εβδομάδα έχουμε κάτι ειδικό για σας. Ανοίξτε το Wallet, δείτε τη νέα προσφορά, και έρθετε να τη χρησιμοποιήσετε.\n\nΘα χαρούμε να σας δούμε ξανά.\n\n---\n\n*English:*\n\nHey there,\n\nWe've been thinking of you. Remember that pass in your Wallet? Sometimes you jus…",
+      "output": "Μυρίζει ενοχή — «σε χάσαμε», «πού είσαι». Κανείς δεν θέλει να του θυμίζουν ότι έλειπε. Γράψε το σαν να άνοιξε κάτι νέο και τον καλείς, χωρίς αναφορά στο ότι λείπει.",
+      "decision": "reject",
+      "timestamp": "2026-08-20T17:15:56+00:00"
+    },
+    {
+      "role": "marketing",
+      "action": "revise_content",
+      "input": "Μυρίζει ενοχή — «σε χάσαμε», «πού είσαι». Κανείς δεν θέλει να του θυμίζουν ότι έλειπε. Γράψε το σαν να άνοιξε κάτι νέο και τον καλείς, χωρίς αναφορά στο ότι λείπει.",
+      "output": "Καλησπέρα,\n\nΈνα νέο κάτι έχουμε αυτή την εβδομάδα — σαν να άνοιξε η πόρτα για κάποιος που αγαπά αυτό που κάνουμε.\n\nΤο pass σας είναι ήδη στο Wallet. Απλά δείτε τι νέο έχει, και αν σας αρέσει, περάστε να το δοκιμάσετε.\n\nΘα χαρούμε να σας δούμε.\n\n---\n\n*English:*\n\nHey,\n\nSomething new just arrived this week — the kind of thing we think you'll like.\n\nYour pass is ready in your Wallet. Take a look at w…",
+      "decision": null,
+      "timestamp": "2026-08-20T17:16:00+00:00"
+    },
+    {
+      "role": "founder",
+      "action": "hitl_review",
+      "input": "Καλησπέρα,\n\nΈνα νέο κάτι έχουμε αυτή την εβδομάδα — σαν να άνοιξε η πόρτα για κάποιος που αγαπά αυτό που κάνουμε.\n\nΤο pass σας είναι ήδη στο Wallet. Απλά δείτε τι νέο έχει, και αν σας αρέσει, περάστε να το δοκιμάσετε.\n\nΘα χαρούμε να σας δούμε.\n\n---\n\n*English:*\n\nHey,\n\nSomething new just arrived this week — the kind of thing we think you'll like.\n\nYour pass is ready in your Wallet. Take a look at w…",
+      "output": "",
+      "decision": "approve",
+      "timestamp": "2026-08-20T17:16:00+00:00"
+    },
+    {
+      "role": "marketing",
+      "action": "publisher_tool.publish",
+      "input": "470 chars",
+      "output": "shipped:470chars",
+      "decision": null,
+      "timestamp": "2026-08-20T17:16:00+00:00"
+    }
+  ]
+}

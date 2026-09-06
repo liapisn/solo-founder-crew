@@ -1,0 +1,99 @@
+# Passly — Pre-Launch Brand & Marketing Framework
+
+---
+
+## CORE MESSAGE
+
+**Greek SMBs deserve loyalty and marketing tools that work *with* their life, not against it.**
+
+Passly puts repeat-customer campaigns into Apple and Google Wallet—no app install, no learning curve, no agency budget needed.
+
+---
+
+## POSITIONING STATEMENT
+
+For Greek café owners, salon managers, and retail shops who run loyalty programs and promotions but don't have a dedicated marketer, Passly is a digital wallet marketing platform that lets you ship professional campaigns in two clicks. Unlike generic marketing tools that demand hours of learning, Passly is built for Greek businesses and channels—SMS, email, Apple Wallet, Google Wallet—so you can focus on what matters: getting customers back through the door.
+
+---
+
+## KEY MESSAGING PILLARS
+
+### 1. **No App, No Friction**
+- Your customers already have Apple and Google Wallet open.
+- A pass notification lands there. They tap. Done.
+- No "download the app" friction. No abandoned links.
+
+**Example:** A κομμωτήριο sends a loyalty pass to regulars. They tap it from Wallet. No barrier.
+
+---
+
+### 2. **Campaign in Two Clicks**
+- You describe what you want (a coffee promotion, a salon discount).
+- AI drafts the copy, the offer, the timing.
+- You review, tweak if you want, and ship.
+- No copywriting degree needed. No day spent in software tutorials.
+
+**Example:** Monday morning, a retail shop owner has 20 minutes. "I want to fill Tuesday afternoon." AI builds it. Owner hits send.
+
+---
+
+### 3. **Built for Greek Businesses**
+- Greek language throughout.
+- SMS via Greek carriers. Email templates that feel familiar.
+- Compliance baked in (GDPR, no surprises).
+- Channels that Greek customers actually use.
+
+**Example:** A καφές can text regulars *or* push a pass—whatever fits. No need to pick between five different platforms.
+
+---
+
+### 4. **You Look Professional. You Move Fast.**
+- No agency. No weeks of back-and-forth.
+- Your campaigns look polished because the AI and templates do the heavy lifting.
+- You stay in control; you don't disappear into someone else's process.
+
+---
+
+## VOICE IN PRACTICE
+
+### ✅ DO
+
+**Greek (el):**
+> "Δεν χρειάζεται app. Δεν χρειάζεται να είσαι marketer. Απλά πες μας τι θέλεις και στείλε."
+
+*Translation:* "No app needed. You don't need to be a marketer. Just tell us what you want and ship it."
+
+**English:**
+> "Your regulars already open Apple Wallet every day. Why not meet them there? A pass, a tap, they're back in your door."
+
+---
+
+### ❌ DON'T
+
+- "Revolutionary AI-powered loyalty ecosystem" → Too hype.
+- "Our customers see 40% repeat-visit uplift" → Too specific, and we're pre-launch anyway.
+- "Join our beta cohort of early adopters" → Implies pilots; we're not there yet.
+- "The cutting-edge of digital marketing" → Jargon. Warm peers don't talk like this.
+
+---
+
+## CUSTOMER OBJECTIONS — RESPONSES
+
+### Objection: "I don't have time to learn another app"
+
+**Response (warm, peer-to-peer):**
+> "Totally fair. That's why Passly isn't an app for you—it's a tool for one task. You log in, you describe a campaign, AI drafts it, you send it. Two clicks. If you can send an SMS, you can do this."
+
+---
+
+### Objection: "My customers won't install anything"
+
+**Response:**
+> "Exactly. That's the whole point. Your regulars already have Apple and Google Wallet on their phone. A pass sits there. They tap it when they need the discount. No install, no new habit, no friction."
+
+---
+
+### Objection: "I tried SMS marketing once and it felt spammy"
+
+**Response:**
+> "Smart. Bad SMS is annoying. The difference here: you're sending an offer that your customer actually wants, to people who've already told you they like you (your regulars). A pass in Wallet feels

@@ -1,0 +1,16 @@
+# SMS Draft (Final)
+
+## Option 1
+Το Καφέ μας: 2 καφέδες, 1 τιμή μέχρι Κυριακή. Περνάτε;
+
+## Option 2
+[Όνομα καφέ]: 2 καφέδες, 1 τιμή μέχρι Κυριακή. Θα σας περιμένουμε!
+
+## Option 3
+[Όνομα καφέ]: 2 καφέδες, 1 τιμή μέχρι Κυριακή. Καλή απόλαυση ☕
+
+---
+
+**Best fit for tone:** Option 1 — reads like a friend's text, not a bank. The "Περνάτε;" (coming by?) feels like something a barista would actually say.
+
+**To use:** Replace "Το Καφέ μας" with actual café name (e.g. "Το Αρωματικό", "Παντοπολείον Νίκου").

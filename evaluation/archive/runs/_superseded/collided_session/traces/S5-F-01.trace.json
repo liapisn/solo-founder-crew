@@ -1,0 +1,29 @@
+{
+  "scenario": "author_flow::passly",
+  "events": [
+    {
+      "role": "marketing",
+      "action": "draft_content",
+      "input": "Draft the push notification text shown on a customer's wallet pass the moment they earn their tenth stamp and the free coffee unlocks. Wallet push text is one line — under 15 words.",
+      "output": "Το δέκατο καφέ σας περιμένει! Ανοίξτε το pass και κάντε αξίωση.",
+      "decision": null,
+      "timestamp": "2026-08-20T17:16:01+00:00"
+    },
+    {
+      "role": "founder",
+      "action": "hitl_review",
+      "input": "Το δέκατο καφέ σας περιμένει! Ανοίξτε το pass και κάντε αξίωση.",
+      "output": "",
+      "decision": "approve",
+      "timestamp": "2026-08-20T17:16:01+00:00"
+    },
+    {
+      "role": "marketing",
+      "action": "publisher_tool.publish",
+      "input": "63 chars",
+      "output": "shipped:63chars",
+      "decision": null,
+      "timestamp": "2026-08-20T17:16:01+00:00"
+    }
+  ]
+}

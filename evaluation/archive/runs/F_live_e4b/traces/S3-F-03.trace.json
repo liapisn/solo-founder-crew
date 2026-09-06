@@ -1,0 +1,61 @@
+{
+  "scenario": "author_flow::passly",
+  "events": [
+    {
+      "role": "marketing",
+      "action": "draft_content",
+      "input": "Draft an SMS promoting a two-for-one coffee offer for a neighbourhood café this week. Greek only. SMS length limits apply — under 160 characters.",
+      "output": "Καλημέρα! ☕ Δύο καφέδες με την τιμή του ενός, μόνο αυτή την εβδομάδα. Πάρε το pass σου και έλα να τα χαρούμε μαζί.",
+      "decision": null,
+      "timestamp": "2026-08-20T17:28:24+00:00"
+    },
+    {
+      "role": "founder",
+      "action": "hitl_review",
+      "input": "Καλημέρα! ☕ Δύο καφέδες με την τιμή του ενός, μόνο αυτή την εβδομάδα. Πάρε το pass σου και έλα να τα χαρούμε μαζί.",
+      "output": "Δεν χωράει σε SMS, το ξεπερνάει. Κόψε το μισό και κράτα μόνο την προσφορά και το πότε λήγει.",
+      "decision": "reject",
+      "timestamp": "2026-08-20T17:28:24+00:00"
+    },
+    {
+      "role": "marketing",
+      "action": "revise_content",
+      "input": "Δεν χωράει σε SMS, το ξεπερνάει. Κόψε το μισό και κράτα μόνο την προσφορά και το πότε λήγει.",
+      "output": "Δύο καφέδες με την τιμή του ενός. Μόνο αυτή την εβδομάδα. Πάρε το pass σου τώρα.",
+      "decision": null,
+      "timestamp": "2026-08-20T17:28:25+00:00"
+    },
+    {
+      "role": "founder",
+      "action": "hitl_review",
+      "input": "Δύο καφέδες με την τιμή του ενός. Μόνο αυτή την εβδομάδα. Πάρε το pass σου τώρα.",
+      "output": "Τώρα χωράει αλλά διαβάζεται σαν ανακοίνωση τράπεζας. Βάλε το όνομα του μαγαζιού μπροστά και κλείσε με κάτι που θα έλεγε ο μπαρίστα.",
+      "decision": "reject",
+      "timestamp": "2026-08-20T17:28:25+00:00"
+    },
+    {
+      "role": "marketing",
+      "action": "revise_content",
+      "input": "Τώρα χωράει αλλά διαβάζεται σαν ανακοίνωση τράπεζας. Βάλε το όνομα του μαγαζιού μπροστά και κλείσε με κάτι που θα έλεγε ο μπαρίστα.",
+      "output": "Καφές Νίκου: 2 καφέδες με την τιμή του 1️⃣ αυτή την εβδομάδα. Έλα να το γιορτάσουμε μαζί ☕",
+      "decision": null,
+      "timestamp": "2026-08-20T17:28:27+00:00"
+    },
+    {
+      "role": "founder",
+      "action": "hitl_review",
+      "input": "Καφές Νίκου: 2 καφέδες με την τιμή του 1️⃣ αυτή την εβδομάδα. Έλα να το γιορτάσουμε μαζί ☕",
+      "output": "",
+      "decision": "approve",
+      "timestamp": "2026-08-20T17:28:27+00:00"
+    },
+    {
+      "role": "marketing",
+      "action": "publisher_tool.publish",
+      "input": "90 chars",
+      "output": "shipped:90chars",
+      "decision": null,
+      "timestamp": "2026-08-20T17:28:27+00:00"
+    }
+  ]
+}

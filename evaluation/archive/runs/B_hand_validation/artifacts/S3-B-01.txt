@@ -1,0 +1,24 @@
+# SMS Draft — With Personality
+
+## Option 1
+**Το Καφεδάκι μας: 2 καφέδες, 1 τιμή. Τρίτη & Τετάρτη. Περάστε!**
+
+*Character count: 68*
+
+---
+
+## Option 2
+**Καφεδάκι Παναγιώτη: 2 καφέδες, 1 τιμή — Τρίτη & Τετάρτη. Θα σας περιμένουμε!**
+
+*Character count: 88*
+
+---
+
+## Option 3
+**Το Καφεδάκι: 2 καφέδες, 1 τιμή. Τρίτη & Τετάρτη. Χαμε όρεξη να σας δούμε!**
+
+*Character count: 84*
+
+---
+
+**Recommended:** Option 3. Keeps the barista warmth ("χαμε όρεξη να σας δούμε") without overselling. Feels like a text from a friend, not a bank.

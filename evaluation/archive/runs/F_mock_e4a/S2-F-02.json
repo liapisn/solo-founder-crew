@@ -1,0 +1,37 @@
+{
+  "run_id": "S2-F-02",
+  "scenario": "S2",
+  "condition": "F",
+  "llm": "MockLLM",
+  "role": "marketing",
+  "timestamp_start": "2026-08-20T20:27:01+03:00",
+  "timestamp_terminal": "2026-08-20T20:27:01+03:00",
+  "termination_path": "shipped",
+  "turns": 1,
+  "founder_interactions": [
+    {
+      "seq": 1,
+      "kind": "approve",
+      "at": "2026-08-20T20:27:01+03:00",
+      "feedback": null,
+      "chars_typed": 0
+    }
+  ],
+  "gated_actions": [
+    {
+      "action": "final_approval_before_publish",
+      "escalated": true,
+      "resolved": "approve"
+    }
+  ],
+  "tokens": {
+    "input": 0,
+    "output": 0
+  },
+  "llm_latency_s": 0.0,
+  "wall_clock_s": 0.004,
+  "final_artifact_sha256": "21a35cbae612382134bab75c480c7dfbca0730986b2e7680c00eb4cc0dae0387",
+  "artifact_path": "artifacts/S2-F-02.txt",
+  "schema_version": 1,
+  "notes": "Loyalty-card offer copy, Chunky Cookie Bar · channel=apple_wallet · Shortest happy path; terse-format discipline"
+}

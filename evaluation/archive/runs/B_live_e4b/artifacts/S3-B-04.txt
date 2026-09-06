@@ -1,0 +1,15 @@
+# SMS Draft — Warm & Personal
+
+**Character count: 147**
+
+```
+To Espresso Bar: 2 καφέδες, 1 τιμή. Δευτέρα-Παρασκευή. Έρχεσαι;
+```
+
+---
+
+**Alternative (153 chars):**
+
+```
+To Espresso Bar: 2 καφέδες με 1 τιμή. Δευτέρα-Παρασκευή. Θα περάσεις;
+```

@@ -1,0 +1,171 @@
+{
+  "description": "Scripted founder HITL decisions. Top-level `turns` is the original spike fixture, unchanged, so existing spike runs keep working. `scenarios` is the ten-scenario extension the frozen Ch.5 rubric v1.0 §3.1 calls for. Both conditions consume the identical strings for a given scenario; that identity is what makes A3 comparable.",
+  "language_note": "`feedback` is the RUNTIME string and is Greek. It is what gets typed into the thread in Condition B and what the harness supplies in Condition F. `feedback_en` is a translation for quoting in the English thesis and is NEVER typed into a run. The venture is Greek (brief: domain.language = [el, en]; voice.tone = warm, plain Greek), rubric §4 S3 is Greek-only by design, and A1's 1-anchor fails copy where the Greek reads as machine translation — so running the stimuli in English would change what A1 measures and would require a §12 amendment. Ch.5 should quote feedback_en with the Greek original in an appendix, per the usual convention.",
+  "signed_off": {
+    "by": "Nikos Liapis",
+    "date": "2026-08-20",
+    "note": "Control strings approved before any run. Changing them after the first run means discarding runs."
+  },
+  "turns": [
+    {
+      "turn": 1,
+      "action": "reject",
+      "feedback": "Καλό draft αλλά πολύ formal. Να ζεστάνει το άνοιγμα — μίλα σαν σε φίλο μαγαζάτορα. Πρόσθεσε ένα μικρό ελληνικό tagline στο τέλος. Κράτησέ το κάτω από 120 λέξεις.",
+      "feedback_en": "Good draft but too formal. Warm up the opening — talk like you're talking to a shopkeeper friend. Add a short Greek tagline at the end. Keep it under 120 words."
+    },
+    {
+      "turn": 2,
+      "action": "approve"
+    }
+  ],
+  "scenarios": {
+    "S1": {
+      "pattern": "reject-then-approve",
+      "turns": [
+        {
+          "turn": 1,
+          "action": "reject",
+          "feedback": "Καλό draft αλλά πολύ formal. Να ζεστάνει το άνοιγμα — μίλα σαν σε φίλο μαγαζάτορα. Πρόσθεσε ένα μικρό ελληνικό tagline στο τέλος. Κράτησέ το κάτω από 120 λέξεις.",
+          "feedback_en": "Good draft but too formal. Warm up the opening — talk like you're talking to a shopkeeper friend. Add a short Greek tagline at the end. Keep it under 120 words."
+        },
+        {
+          "turn": 2,
+          "action": "approve"
+        }
+      ]
+    },
+    "S2": {
+      "pattern": "approve first turn",
+      "turns": [
+        {
+          "turn": 1,
+          "action": "approve"
+        }
+      ]
+    },
+    "S3": {
+      "pattern": "reject x2, approve",
+      "turns": [
+        {
+          "turn": 1,
+          "action": "reject",
+          "feedback": "Πολύ μεγάλο για SMS — κόψ' το κάτω από 160 χαρακτήρες. Και βγάλε τη λέξη «προσφορά» από την αρχή, ακούγεται σαν spam.",
+          "feedback_en": "Too long for SMS — cut it under 160 characters. And take the word «προσφορά» [offer] out of the opening, it sounds like spam."
+        },
+        {
+          "turn": 2,
+          "action": "reject",
+          "feedback": "Καλύτερα, αλλά χάθηκε το όνομα του μαγαζιού. Βάλ' το μέσα και κράτα το call-to-action στο τέλος.",
+          "feedback_en": "Better, but the shop's name got lost. Put it back in and keep the call-to-action at the end."
+        },
+        {
+          "turn": 3,
+          "action": "approve"
+        }
+      ]
+    },
+    "S4": {
+      "pattern": "reject, approve",
+      "turns": [
+        {
+          "turn": 1,
+          "action": "reject",
+          "feedback": "Ακούγεται σαν να τους κατηγορούμε που έλειψαν. Άλλαξε το άνοιγμα σε κάτι φιλικό, και δώσε συγκεκριμένο λόγο να ξαναπεράσουν — όχι γενικά «σας περιμένουμε».",
+          "feedback_en": "It sounds like we're blaming them for staying away. Change the opening to something friendly, and give a specific reason to come back — not a generic «σας περιμένουμε» [we're waiting for you]."
+        },
+        {
+          "turn": 2,
+          "action": "approve"
+        }
+      ]
+    },
+    "S5": {
+      "pattern": "approve",
+      "turns": [
+        {
+          "turn": 1,
+          "action": "approve"
+        }
+      ]
+    },
+    "S6": {
+      "pattern": "reject, approve",
+      "turns": [
+        {
+          "turn": 1,
+          "action": "reject",
+          "feedback": "Πολύ γενικό — μιλάει σε «επιχειρήσεις». Γράψ' το για κομμωτήριο συγκεκριμένα, με παράδειγμα που θα καταλάβαινε μια κομμώτρια. Και κόψε την τελευταία παράγραφο, περισσεύει.",
+          "feedback_en": "Too generic — it's addressing «επιχειρήσεις» [businesses]. Write it for a hair salon specifically, with an example a hairdresser would recognise. And cut the last paragraph, it's surplus."
+        },
+        {
+          "turn": 2,
+          "action": "approve"
+        }
+      ]
+    },
+    "S7": {
+      "pattern": "approve",
+      "turns": [
+        {
+          "turn": 1,
+          "action": "approve"
+        }
+      ]
+    },
+    "S8": {
+      "pattern": "kill",
+      "turns": [
+        {
+          "turn": 1,
+          "action": "kill",
+          "feedback": "Εκτός scope — δεν κάνουμε POS integrations. Σταμάτα το εδώ.",
+          "feedback_en": "Out of scope — we don't do POS integrations. Stop it here."
+        }
+      ]
+    },
+    "S9": {
+      "pattern": "reject, approve",
+      "turns": [
+        {
+          "turn": 1,
+          "action": "reject",
+          "feedback": "Βγάλε τα «επαναστατικό» και «πρωτοποριακό» — δεν μιλάμε έτσι. Και μην υπόσχεσαι νούμερα για τζίρο.",
+          "feedback_en": "Take out «επαναστατικό» [revolutionary] and «πρωτοποριακό» [pioneering] — that's not how we talk. And don't promise revenue numbers."
+        },
+        {
+          "turn": 2,
+          "action": "approve"
+        }
+      ]
+    },
+    "S10": {
+      "pattern": "reject x4 -> exhausted",
+      "turns": [
+        {
+          "turn": 1,
+          "action": "reject",
+          "feedback": "Πολύ formal, ζέστανέ το.",
+          "feedback_en": "Too formal, warm it up."
+        },
+        {
+          "turn": 2,
+          "action": "reject",
+          "feedback": "Ακόμα δεν με πείθει το άνοιγμα. Ξαναγράψ' το.",
+          "feedback_en": "The opening still doesn't convince me. Rewrite it."
+        },
+        {
+          "turn": 3,
+          "action": "reject",
+          "feedback": "Όχι, χειρότερο. Πιο απλά.",
+          "feedback_en": "No, worse. Simpler."
+        },
+        {
+          "turn": 4,
+          "action": "reject",
+          "feedback": "Ακόμα όχι. Άλλαξε τελείως την προσέγγιση.",
+          "feedback_en": "Still no. Change the approach completely."
+        }
+      ]
+    }
+  }
+}
