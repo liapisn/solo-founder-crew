@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/liapisn/solo-founder-crew/actions/workflows/ci.yml/badge.svg)](https://github.com/liapisn/solo-founder-crew/actions/workflows/ci.yml)
 
-Multi-agent operating model for solo-founder digital startups. Companion code for the MBA διπλωματική *AI-Native Management and Orchestration* (University of the Aegean / NTUA, Liapis 2026).
+Multi-agent operating model for solo-founder digital startups. Companion code for the MBA διπλωματική *AI-Native Management and Orchestration* (Liapis 2026), submitted for the [MBA in Digital Innovation and Startup Entrepreneurship](https://msc.icsd.aegean.gr/en/masters/mba-digital-innovation-and-startup-entrepreneurship) at the University of the Aegean.
 
 This repository hosts the **framework** developed in Chapter 3. The case-study application in Chapter 4 (Passly) consumes this framework as a dependency from its own repo.
 
